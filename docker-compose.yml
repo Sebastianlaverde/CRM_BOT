@@ -1,0 +1,28 @@
+services:
+
+  postgres:
+    image: postgres:16
+    container_name: leadflow_postgres
+    restart: always
+    environment:
+      POSTGRES_DB: leadflow
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin123
+    ports:
+      - "5432:5432"
+
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: leadflow_n8n
+    restart: always
+    ports:
+      - "5678:5678"
+
+  api:
+    build: ./backend
+    container_name: leadflow_api
+    restart: always
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
