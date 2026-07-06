@@ -1,12 +1,22 @@
 from fastapi import FastAPI
 
+from app.core.config import settings
+from app.routers.health import router as health_router
+
 app = FastAPI(
-    title="LeadFlow CRM",
-    version="1.0"
+    title=settings.PROJECT_NAME,
+    version=settings.VERSION,
+    description="API para la plataforma LeadFlow",
 )
 
-@app.get("/")
-def inicio():
+app.include_router(health_router)
+
+@app.get("/", tags=["System"])
+def root():
     return {
-        "mensaje": "LeadFlow funcionando"
+        "project": settings.PROJECT_NAME,
+        "version": settings.VERSION,
+        "documentation": "/docs",
+        "status": "running"
     }
+

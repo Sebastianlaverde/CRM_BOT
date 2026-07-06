@@ -4,25 +4,55 @@ services:
     image: postgres:16
     container_name: leadflow_postgres
     restart: always
+
+    env_file:
+      - .env
+
     environment:
-      POSTGRES_DB: leadflow
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: admin123
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+
     ports:
       - "5432:5432"
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
 
   n8n:
     image: n8nio/n8n:latest
     container_name: leadflow_n8n
     restart: always
+
+    env_file:
+      - .env
+
     ports:
       - "5678:5678"
+
+    volumes:
+      - n8n_data:/home/node/.n8n
+
 
   api:
     build: ./backend
     container_name: leadflow_api
     restart: always
+
+    env_file:
+      - .env
+
     ports:
-      - "8000:8000"
+      - "${API_PORT}:8000"
+
     depends_on:
       - postgres
+
+    volumes:
+      - ./backend:/app
+
+
+volumes:
+  postgres_data:
+  n8n_data:
