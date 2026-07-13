@@ -1,0 +1,19 @@
+from enum import Enum
+
+
+class EstadoProspecto(str, Enum):
+    NUEVO = "NUEVO"
+
+    CONTACTADO = "CONTACTADO"
+
+    RESPONDIO = "RESPONDIO"
+
+    INTERESADO = "INTERESADO"
+
+    COTIZACION_ENVIADA = "COTIZACION_ENVIADA"
+
+    NEGOCIACION = "NEGOCIACION"
+
+    CLIENTE = "CLIENTE"
+
+    DESCARTADO = "DESCARTADO"

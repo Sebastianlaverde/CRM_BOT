@@ -1,0 +1,30 @@
+# Prospecto
+
+Representa una empresa que podría convertirse en cliente.
+
+Estados:
+
+- NUEVO
+- CONTACTADO
+- RESPONDIO
+- INTERESADO
+- COTIZACION_ENVIADA
+- NEGOCIACION
+- CLIENTE
+- DESCARTADO
+
+Origen:
+
+- GOOGLE_MAPS
+- EXCEL
+- MANUAL
+- REFERIDO
+
+Tipo de negocio:
+
+- PIZZERIA
+- PANADERIA
+- CAFETERIA
+- RESTAURANTE
+- HAMBURGUESERIA
+- OTRO
