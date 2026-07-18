@@ -1,8 +1,11 @@
 from sqlalchemy.orm import Session
 
+from app.enums import EstadoProspecto
 from app.models.prospecto import Prospecto
-from app.schemas.prospecto import ProspectoCreate
-
+from app.schemas.prospecto import (
+    ProspectoCreate,
+    ProspectoUpdate,
+)
 
 class ProspectoRepository:
 
@@ -39,3 +42,33 @@ class ProspectoRepository:
             )
             .first()
         )
+    
+    def update(
+        self,
+        prospecto: Prospecto,
+        data: ProspectoUpdate
+    ) -> Prospecto:
+
+        datos = data.model_dump(exclude_unset=True)
+
+        for campo, valor in datos.items():
+            setattr(prospecto, campo, valor)
+
+        self.db.commit()
+        self.db.refresh(prospecto)
+
+        return prospecto
+    
+    def cambiar_estado(
+        self,
+        prospecto: Prospecto,
+        estado: EstadoProspecto
+    ):
+
+        prospecto.estado = estado
+
+        self.db.commit()
+
+        self.db.refresh(prospecto)
+
+        return prospecto

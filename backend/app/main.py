@@ -13,6 +13,10 @@ from app.database.database import engine
 # Importar los modelos para que SQLAlchemy los registre
 from app.models import Prospecto
 
+from app.routers.historial import router as historial_router
+
+from app.routers.productos import router as productos_router
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
@@ -27,6 +31,8 @@ app = FastAPI(
 )
 app.include_router(health_router)
 app.include_router(prospectos_router)
+app.include_router(historial_router)
+app.include_router(productos_router)
 
 @app.get("/", tags=["System"])
 def root():

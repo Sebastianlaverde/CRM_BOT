@@ -7,6 +7,7 @@ from sqlalchemy import Text
 from sqlalchemy import func
 from sqlalchemy.orm import Mapped
 from sqlalchemy.orm import mapped_column
+from sqlalchemy.orm import relationship
 
 from app.database.base import Base
 from app.enums import (
@@ -93,4 +94,16 @@ class Prospecto(Base):
         DateTime(timezone=True),
         server_default=func.now(),
         onupdate=func.now()
+    )
+
+    historial = relationship(
+    "HistorialEstado",
+    back_populates="prospecto",
+    cascade="all, delete-orphan"
+
+    )
+
+    cotizaciones = relationship(
+    "Cotizacion",
+    back_populates="prospecto"
     )
