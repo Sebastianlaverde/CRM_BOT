@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from sqlalchemy import DateTime
 from sqlalchemy import Enum
 from sqlalchemy import ForeignKey
@@ -39,10 +41,10 @@ class Cotizacion(Base):
         nullable=True
     )
 
-    valor_total: Mapped[float] = mapped_column(
+    valor_total: Mapped[Decimal] = mapped_column(
         Numeric(12, 2),
         nullable=False,
-        default=0
+        default=Decimal("0.00")
     )
 
     created_at: Mapped[DateTime] = mapped_column(

@@ -7,6 +7,7 @@ from sqlalchemy.orm import relationship
 
 from app.database.base import Base
 
+from decimal import Decimal
 
 class DetalleCotizacion(Base):
 
@@ -33,12 +34,12 @@ class DetalleCotizacion(Base):
         nullable=False
     )
 
-    precio_unitario: Mapped[float] = mapped_column(
+    precio_unitario: Mapped[Decimal] = mapped_column(
         Numeric(12, 2),
         nullable=False
     )
 
-    subtotal: Mapped[float] = mapped_column(
+    subtotal: Mapped[Decimal] = mapped_column(
         Numeric(12, 2),
         nullable=False
     )

@@ -97,13 +97,13 @@ class Prospecto(Base):
     )
 
     historial = relationship(
-    "HistorialEstado",
-    back_populates="prospecto",
-    cascade="all, delete-orphan"
+        "HistorialEstado",
+        back_populates="prospecto",
+        cascade="all, delete-orphan"
 
     )
 
     cotizaciones = relationship(
-    "Cotizacion",
-    back_populates="prospecto"
+        "Cotizacion",
+        back_populates="prospecto"
     )

@@ -11,6 +11,7 @@ from sqlalchemy.orm import relationship
 
 from app.database.base import Base
 
+from decimal import Decimal
 
 class Producto(Base):
 
@@ -32,7 +33,7 @@ class Producto(Base):
         nullable=True
     )
 
-    precio: Mapped[float] = mapped_column(
+    precio: Mapped[Decimal] = mapped_column(
         Numeric(12, 2),
         nullable=False
     )
@@ -54,6 +55,6 @@ class Producto(Base):
     )
 
     detalles = relationship(
-    "DetalleCotizacion",
-    back_populates="producto"
+        "DetalleCotizacion",
+        back_populates="producto"
     )
