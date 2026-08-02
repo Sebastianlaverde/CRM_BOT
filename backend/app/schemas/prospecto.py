@@ -51,3 +51,4 @@ class ProspectoResponse(ProspectoBase):
 
 class CambiarEstadoRequest(BaseModel):
     estado: EstadoProspecto
+    observacion: str | None = None

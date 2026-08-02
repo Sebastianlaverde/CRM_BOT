@@ -16,13 +16,36 @@ class CotizacionCreate(BaseModel):
     observaciones: str | None = None
     productos: list[DetalleCotizacionCreate]
 
+class ProspectoResumenResponse(BaseModel):
+
+    id: int
+    nombre_empresa: str
+    telefono: str
+
+    model_config = {
+        "from_attributes": True
+    }
+
+
+class ProductoResumenResponse(BaseModel):
+
+    id: int
+    nombre: str
+
+    model_config = {
+        "from_attributes": True
+    }
 
 class DetalleCotizacionResponse(BaseModel):
 
     id: int
-    producto_id: int
+    
+    producto: ProductoResumenResponse
+
     cantidad: int
+
     precio_unitario: Decimal
+
     subtotal: Decimal
 
     model_config = {
@@ -33,7 +56,7 @@ class DetalleCotizacionResponse(BaseModel):
 class CotizacionResponse(BaseModel):
 
     id: int
-    prospecto_id: int
+    prospecto: ProspectoResumenResponse
     estado: EstadoCotizacion
     observaciones: str | None
     valor_total: Decimal

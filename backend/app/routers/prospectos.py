@@ -107,8 +107,9 @@ def cambiar_estado(
     try:
 
         prospecto = service.cambiar_estado(
-            prospecto_id,
-            data.estado
+            prospecto_id=prospecto_id,
+            estado=data.estado,
+            observacion=data.observacion
         )
 
         if not prospecto:

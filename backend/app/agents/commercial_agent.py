@@ -1,0 +1,25 @@
+from sqlalchemy.orm import Session
+
+from app.agents.base_agent import BaseAgent
+from app.agents.agent_pipeline import AgentPipeline
+
+
+class CommercialAgent(BaseAgent):
+
+    def __init__(
+        self,
+        db: Session
+    ):
+
+        self.pipeline = AgentPipeline(db)
+
+    def responder(
+        self,
+        prospecto_id: int,
+        mensaje: str
+    ):
+
+        return self.pipeline.execute(
+            prospecto_id,
+            mensaje
+        )

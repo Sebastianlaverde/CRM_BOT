@@ -72,3 +72,16 @@ class ProspectoRepository:
         self.db.refresh(prospecto)
 
         return prospecto
+
+    def buscar_por_telefono(
+        self,
+        telefono: str
+    ):
+
+        return (
+            self.db.query(Prospecto)
+            .filter(
+                Prospecto.telefono == telefono
+            )
+            .first()
+        )

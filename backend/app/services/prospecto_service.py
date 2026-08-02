@@ -6,15 +6,17 @@ from app.schemas.prospecto import (
     ProspectoCreate,
     ProspectoUpdate,
 )
-from app.core.prospecto_flow import ProspectoFlow
 from app.services.historial_service import HistorialService
 from app.schemas.historial import HistorialEstadoCreate
+from app.services.prospecto_state_service import ProspectoStateService
+
 
 class ProspectoService:
 
     def __init__(self, db: Session):
         self.repository = ProspectoRepository(db)
         self.historial_service = HistorialService(db)
+        self.state_service = ProspectoStateService(db)
 
     def crear_prospecto(self, data: ProspectoCreate):
         return self.repository.create(data)
@@ -52,42 +54,18 @@ class ProspectoService:
     def cambiar_estado(
         self,
         prospecto_id: int,
-        estado: EstadoProspecto
+        estado: EstadoProspecto,
+        observacion: str | None = None
     ):
 
         prospecto = self.repository.find_by_id(prospecto_id)
 
-        if not prospecto:
+        if prospecto is None:
             return None
 
-        estado_actual = prospecto.estado
-
-        if estado_actual == estado:
-            return prospecto
-
-        if not ProspectoFlow.puede_cambiar(
-            estado_actual,
-            estado
-        ):
-            raise ValueError(
-                f"No se puede cambiar de {estado_actual.value} a {estado.value}"
-            )
-
-        estado_anterior = prospecto.estado
-
-        prospecto_actualizado = self.repository.cambiar_estado(
-            prospecto,
-            estado
+        return self.state_service.cambiar_estado(
+            prospecto=prospecto,
+            nuevo_estado=estado,
+            observacion=observacion
         )
-
-        self.historial_service.registrar(
-            HistorialEstadoCreate(
-                prospecto_id=prospecto.id,
-                estado_anterior=estado_anterior,
-                estado_nuevo=estado,
-                observacion=None
-            )
-        )
-
-        return prospecto_actualizado
-        
+                

@@ -14,10 +14,13 @@ from app.routers.prospectos import router as prospectos_router
 from app.routers.historial import router as historial_router
 from app.routers.productos import router as productos_router
 from app.routers.cotizaciones import router as cotizaciones_router
-
+from app.routers.eventos import router as eventos_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+
+    Base.metadata.create_all(bind=engine)
+
     yield
 
 
@@ -33,7 +36,7 @@ app.include_router(prospectos_router)
 app.include_router(historial_router)
 app.include_router(productos_router)
 app.include_router(cotizaciones_router)
-
+app.include_router(eventos_router)
 
 @app.get("/", tags=["System"])
 def root():

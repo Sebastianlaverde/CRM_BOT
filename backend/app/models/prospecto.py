@@ -107,3 +107,9 @@ class Prospecto(Base):
         "Cotizacion",
         back_populates="prospecto"
     )
+
+    sesiones = relationship(
+        "SesionConversacion",
+        back_populates="prospecto",
+        cascade="all, delete-orphan"
+    )

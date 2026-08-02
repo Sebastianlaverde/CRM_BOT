@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.orm import joinedload
 
 from app.models.cotizacion import Cotizacion
+from app.models.detalle_cotizacion import DetalleCotizacion
 
 
 class CotizacionRepository:
@@ -21,7 +22,10 @@ class CotizacionRepository:
         return (
             self.db.query(Cotizacion)
             .options(
-                joinedload(Cotizacion.detalles)
+                joinedload(Cotizacion.prospecto),
+                joinedload(Cotizacion.detalles).joinedload(
+                    DetalleCotizacion.producto
+                )
             )
             .filter(
                 Cotizacion.id == cotizacion_id
@@ -34,7 +38,10 @@ class CotizacionRepository:
         return (
             self.db.query(Cotizacion)
             .options(
-                joinedload(Cotizacion.detalles)
+                joinedload(Cotizacion.prospecto),
+                joinedload(Cotizacion.detalles).joinedload(
+                    DetalleCotizacion.producto
+                )
             )
             .all()
         )

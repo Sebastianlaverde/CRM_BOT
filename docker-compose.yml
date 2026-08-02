@@ -48,6 +48,7 @@ services:
 
     depends_on:
       - postgres
+      - n8n
 
     volumes:
       - ./backend:/app
