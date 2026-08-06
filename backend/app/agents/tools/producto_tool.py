@@ -1,15 +1,29 @@
+from app.agents.tools.base_tool import BaseTool
+
+from app.services.producto_service import ProductoService
+
+
 class ProductoTool(BaseTool):
+
+    def __init__(
+        self,
+        db
+    ):
+
+        self.service = ProductoService(
+            db
+        )
 
     @property
     def name(self):
 
         return "buscar_productos"
-    
+
     @property
     def description(self):
 
         return (
-            "Busca productos disponibles."
+            "Busca productos disponibles en el catálogo."
         )
 
     @property
@@ -22,56 +36,16 @@ class ProductoTool(BaseTool):
                 "type": "string",
 
                 "required": False
+
             }
 
         }
-
-    def __init__(
-        self,
-        db: Session
-    ):
-
-        self.db = db
-
-        self.service = ProductoService(db)
 
     def execute(
         self,
         **kwargs
     ):
 
-        try:
-
-            nombre = kwargs.get("nombre")
-
-            if nombre:
-
-                productos = self.service.buscar_por_nombre(
-                    nombre
-                )
-
-            else:
-
-                productos = self.service.listar_productos()
-
-            return {
-
-                "success": True,
-
-                "data": productos,
-
-                "message": "Productos encontrados."
-
-            }
-
-        except Exception as e:
-
-            return {
-
-                "success": False,
-
-                "data": None,
-
-                "message": str(e)
-
-            }
+        return self.service.listar_productos(
+            kwargs.get("nombre")
+        )

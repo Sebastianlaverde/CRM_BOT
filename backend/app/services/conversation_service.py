@@ -9,6 +9,7 @@ from app.repositories.mensaje_repository import MensajeRepository
 from app.repositories.prospecto_repository import ProspectoRepository
 from app.services.sesion_service import SesionService
 from app.agents.agent_factory import AgentFactory
+from app.enums.decision_type import DecisionType
 
 class ConversationService:
 
@@ -68,7 +69,22 @@ class ConversationService:
             contenido
         )
 
+        if decision["type"] == DecisionType.RESPONDER:
+
+            respuesta = decision["contenido"]
+
+        else:
+
+            raise NotImplementedError(
+                f"Tipo de decisión '{decision['type']}' no soportado."
+            )
+
         respuesta = decision["contenido"]
+
+        self._execute_actions(
+            decision["acciones"],
+            prospecto
+        )
 
         respuesta_ia = Mensaje(
 
@@ -86,3 +102,23 @@ class ConversationService:
         )
 
         return respuesta
+
+    def _execute_actions(
+        self,
+        acciones,
+        prospecto
+    ):
+
+        for accion in acciones:
+
+            match accion["type"]:
+
+                case "actualizar_estado":
+
+                    prospecto.estado = accion["estado"]
+
+                    self.db.commit()
+
+                case _:
+
+                    pass

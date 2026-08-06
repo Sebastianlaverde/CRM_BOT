@@ -5,9 +5,13 @@ from app.agents.tools.prospecto_tool import ProspectoTool
 from app.agents.tools.cotizacion_tool import CotizacionTool
 from app.agents.tools.historial_tool import HistorialTool
 
+
 class ToolManager:
 
-    def __init__(self, db: Session):
+    def __init__(
+        self,
+        db: Session
+    ):
 
         self.tools = {}
 
@@ -32,17 +36,37 @@ class ToolManager:
         tool
     ):
 
-        self.tools[tool.name] = tool
+        self.tools[
+            tool.name
+        ] = tool
 
-    def get_available_tools(self):
+    def get_available_tools(
+        self
+    ):
 
         return [
 
             {
+
                 "name": tool.name,
+
                 "description": tool.description,
+
                 "parameters": tool.parameters
+
             }
+
+            for tool in self.tools.values()
+
+        ]
+
+    def get_openai_tools(
+        self
+    ):
+
+        return [
+
+            tool.to_openai_function()
 
             for tool in self.tools.values()
 
@@ -50,11 +74,13 @@ class ToolManager:
 
     def execute(
         self,
-        tool_name,
+        tool_name: str,
         **kwargs
     ):
 
-        tool = self.tools.get(tool_name)
+        tool = self.tools.get(
+            tool_name
+        )
 
         if tool is None:
 

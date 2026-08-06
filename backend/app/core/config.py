@@ -5,11 +5,11 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
 
-    PROJECT_NAME: str
-    VERSION: str
+    PROJECT_NAME: str = "leadflow CRM"
+    VERSION: str = "0.1.0"
     ENVIRONMENT: str
 
-    API_PORT: int
+    API_PORT: int = 8000
     TIMEZONE: str
 
     POSTGRES_DB: str
@@ -23,7 +23,9 @@ class Settings(BaseSettings):
     N8N_ENABLED: bool = True
 
     # OpenAI
-    OPENAI_API_KEY: str | None = None
+    AI_PROVIDER: str = "openai"
+    OPENAI_API_KEY: str = ""
+    OPENAI_MODEL: str = "gpt-5"
 
     # WhatsApp
     WHATSAPP_TOKEN: str | None = None

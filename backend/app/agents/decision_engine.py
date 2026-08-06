@@ -1,27 +1,33 @@
-from enum import Enum
-
-
-class DecisionType(str, Enum):
-
-    RESPONDER = "RESPONDER"
-
-    USAR_HERRAMIENTA = "USAR_HERRAMIENTA"
-
-    ESCALAR_HUMANO = "ESCALAR_HUMANO"
-
-    FINALIZAR = "FINALIZAR"
+from app.enums import EstadoProspecto
 
 
 class DecisionEngine:
 
     def decidir(
         self,
-        respuesta_ai: str
+        respuesta_ia: str,
+        contexto: dict
     ):
+
+        acciones = []
+
+        prospecto = contexto["prospecto"]
+
+        estado = prospecto.estado
+
+        if estado == EstadoProspecto.NUEVO:
+
+            acciones.append(
+                {
+                    "type": "actualizar_estado",
+                    "estado": EstadoProspecto.CONTACTADO
+                }
+            )
 
         return {
 
-            "tipo": DecisionType.RESPONDER,
+            "contenido": respuesta_ia,
 
-            "contenido": respuesta_ai
+            "acciones": acciones
+
         }

@@ -1,22 +1,21 @@
-from abc import ABC
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 
 
 class BaseTool(ABC):
 
     @property
     @abstractmethod
-    def name(self) -> str:
+    def name(self):
         pass
 
     @property
     @abstractmethod
-    def description(self) -> str:
+    def description(self):
         pass
 
     @property
     @abstractmethod
-    def parameters(self) -> dict:
+    def parameters(self):
         pass
 
     @abstractmethod
@@ -26,7 +25,47 @@ class BaseTool(ABC):
     ):
         pass
 
-    @property
-    def requires_confirmation(self):
+    def to_openai_function(
+        self
+    ):
 
-        return True
+        properties = {}
+
+        required = []
+
+        for parameter, info in self.parameters.items():
+
+            properties[parameter] = {
+
+                "type": info["type"]
+
+            }
+
+            if info.get(
+                "required",
+                False
+            ):
+
+                required.append(
+                    parameter
+                )
+
+        return {
+
+            "type": "function",
+
+            "name": self.name,
+
+            "description": self.description,
+
+            "parameters": {
+
+                "type": "object",
+
+                "properties": properties,
+
+                "required": required
+
+            }
+
+        }
