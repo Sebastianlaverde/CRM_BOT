@@ -4,7 +4,7 @@ from app.agents.tools.producto_tool import ProductoTool
 from app.agents.tools.prospecto_tool import ProspectoTool
 from app.agents.tools.cotizacion_tool import CotizacionTool
 from app.agents.tools.historial_tool import HistorialTool
-
+from app.agents.tools.evento_tool import EventoTool
 
 class ToolManager:
 

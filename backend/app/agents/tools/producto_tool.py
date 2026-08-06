@@ -1,18 +1,12 @@
 from app.agents.tools.base_tool import BaseTool
-
 from app.services.producto_service import ProductoService
 
 
 class ProductoTool(BaseTool):
 
-    def __init__(
-        self,
-        db
-    ):
+    def __init__(self, db):
 
-        self.service = ProductoService(
-            db
-        )
+        self.service = ProductoService(db)
 
     @property
     def name(self):
@@ -23,7 +17,8 @@ class ProductoTool(BaseTool):
     def description(self):
 
         return (
-            "Busca productos disponibles en el catálogo."
+            "Permite consultar los productos disponibles de la empresa. "
+            "Puede listar todos los productos, buscar por nombre o por referencia."
         )
 
     @property
@@ -31,21 +26,104 @@ class ProductoTool(BaseTool):
 
         return {
 
-            "nombre": {
+            "type": "object",
 
-                "type": "string",
+            "properties": {
 
-                "required": False
+                "accion": {
 
-            }
+                    "type": "string",
+
+                    "enum": [
+
+                        "listar",
+
+                        "buscar_nombre",
+
+                        "buscar_referencia"
+
+                    ]
+
+                },
+
+                "nombre": {
+
+                    "type": "string"
+
+                },
+
+                "referencia": {
+
+                    "type": "string"
+
+                }
+
+            },
+
+            "required": [
+
+                "accion"
+
+            ]
 
         }
 
     def execute(
         self,
-        **kwargs
+        accion,
+        nombre=None,
+        referencia=None
     ):
 
-        return self.service.listar_productos(
-            kwargs.get("nombre")
+        if accion == "listar":
+
+            productos = self.service.listar_productos()
+
+        elif accion == "buscar_nombre":
+
+            productos = self.service.buscar_por_nombre(
+                nombre
+            )
+
+        elif accion == "buscar_referencia":
+
+            productos = self.service.buscar_por_referencia(
+                referencia
+            )
+
+        else:
+
+            raise ValueError(
+                "Acción no soportada."
+            )
+
+        return self._serializar(
+            productos
         )
+
+    def _serializar(
+        self,
+        productos
+    ):
+
+        resultado = []
+
+        for producto in productos:
+
+            resultado.append({
+
+                "id": producto.id,
+
+                "nombre": producto.nombre,
+
+                "referencia": producto.referencia,
+
+                "descripcion": producto.descripcion,
+
+                "precio": float(producto.precio),
+
+                "activo": producto.activo
+
+            })
+
+        return resultado

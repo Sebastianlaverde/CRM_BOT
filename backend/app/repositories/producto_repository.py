@@ -74,3 +74,32 @@ class ProductoRepository:
         self.db.refresh(producto)
 
         return producto
+
+    def find_by_nombre(
+        self,
+        nombre: str
+    ):
+
+        return (
+            self.db.query(Producto)
+            .filter(
+                Producto.nombre.ilike(f"%{nombre}%"),
+                Producto.activo.is_(True)
+            )
+            .all()
+        )
+
+
+    def find_by_referencia(
+        self,
+        referencia: str
+    ):
+
+        return (
+            self.db.query(Producto)
+            .filter(
+                Producto.referencia.ilike(f"%{referencia}%"),
+                Producto.activo.is_(True)
+            )
+            .all()
+        )

@@ -1,8 +1,9 @@
+import json
+
 from openai import OpenAI
 
 from app.core.config import settings
 from app.agents.providers.base_provider import BaseProvider
-
 
 class OpenAIProvider(BaseProvider):
 
@@ -74,14 +75,9 @@ class OpenAIProvider(BaseProvider):
         tools
     ):
 
-        return self.client.responses.create(
-
-            model=settings.OPENAI_MODEL,
-
-            input=messages,
-
-            tools=tools
-
+        return self._call_openai(
+            messages,
+            tools
         )
 
     def _second_response(
@@ -90,14 +86,9 @@ class OpenAIProvider(BaseProvider):
         tools
     ):
 
-        return self.client.responses.create(
-
-            model=settings.OPENAI_MODEL,
-
-            input=messages,
-
-            tools=tools
-
+        return self._call_openai(
+            messages,
+            tools
         )
 
     def _has_tool_calls(
@@ -124,16 +115,29 @@ class OpenAIProvider(BaseProvider):
         for item in response.output:
 
             if item.type != "function_call":
-
                 continue
 
-            result = tool_executor(
+            try:
 
-                item.name,
+                arguments = json.loads(
+                    item.arguments
+                )
 
-                **item.arguments
+                result = tool_executor(
 
-            )
+                    item.name,
+
+                    **arguments
+
+                )
+
+            except Exception as e:
+
+                result = {
+
+                    "error": str(e)
+
+                }
 
             outputs.append({
 
@@ -141,7 +145,10 @@ class OpenAIProvider(BaseProvider):
 
                 "call_id": item.call_id,
 
-                "output": result
+                "output": json.dumps(
+                    result,
+                    ensure_ascii=False
+                )
 
             })
 
@@ -159,3 +166,19 @@ class OpenAIProvider(BaseProvider):
         except Exception:
 
             return ""
+
+    def _call_openai(
+        self,
+        messages,
+        tools
+    ):
+
+        return self.client.responses.create(
+
+            model=settings.OPENAI_MODEL,
+
+            input=messages,
+
+            tools=tools
+
+        )

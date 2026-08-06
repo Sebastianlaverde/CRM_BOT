@@ -62,3 +62,22 @@ class ProductoService:
             return None
 
         return self.repository.delete(producto)
+
+    def buscar_por_nombre(
+        self,
+        nombre: str
+    ):
+
+        return self.repository.find_by_nombre(
+            nombre
+        )
+
+
+    def buscar_por_referencia(
+        self,
+        referencia: str
+    ):
+
+        return self.repository.find_by_referencia(
+            referencia
+        )

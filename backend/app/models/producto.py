@@ -1,60 +1,110 @@
-from sqlalchemy import Boolean
-from sqlalchemy import DateTime
-from sqlalchemy import Integer
-from sqlalchemy import Numeric
-from sqlalchemy import String
-from sqlalchemy import Text
-from sqlalchemy import func
-from sqlalchemy.orm import Mapped
-from sqlalchemy.orm import mapped_column
-from sqlalchemy.orm import relationship
+from app.agents.tools.base_tool import BaseTool
+from app.services.producto_service import ProductoService
 
-from app.database.base import Base
 
-from decimal import Decimal
+class ProductoTool(BaseTool):
 
-class Producto(Base):
+    def __init__(self, db):
 
-    __tablename__ = "productos"
+        self.service = ProductoService(db)
 
-    id: Mapped[int] = mapped_column(
-        Integer,
-        primary_key=True,
-        index=True
-    )
+    @property
+    def name(self):
 
-    nombre: Mapped[str] = mapped_column(
-        String(150),
-        nullable=False
-    )
+        return "buscar_productos"
 
-    descripcion: Mapped[str | None] = mapped_column(
-        Text,
-        nullable=True
-    )
+    @property
+    def description(self):
 
-    precio: Mapped[Decimal] = mapped_column(
-        Numeric(12, 2),
-        nullable=False
-    )
+        return (
+            "Consulta los productos disponibles de la empresa."
+            " Permite listar todos los productos o buscarlos por nombre."
+        )
 
-    activo: Mapped[bool] = mapped_column(
-        Boolean,
-        default=True
-    )
+    @property
+    def parameters(self):
 
-    created_at: Mapped[DateTime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now()
-    )
+        return {
 
-    updated_at: Mapped[DateTime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        onupdate=func.now()
-    )
+            "type": "object",
 
-    detalles = relationship(
-        "DetalleCotizacion",
-        back_populates="producto"
-    )
+            "properties": {
+
+                "accion": {
+
+                    "type": "string",
+
+                    "enum": [
+
+                        "listar",
+
+                        "buscar_nombre"
+
+                    ]
+
+                },
+
+                "nombre": {
+
+                    "type": "string"
+
+                }
+
+            },
+
+            "required": [
+
+                "accion"
+
+            ]
+
+        }
+
+    def execute(
+        self,
+        accion,
+        nombre=None
+    ):
+
+        if accion == "listar":
+
+            productos = self.service.listar_productos()
+
+        elif accion == "buscar_nombre":
+
+            productos = self.service.buscar_por_nombre(
+                nombre
+            )
+
+        else:
+
+            raise ValueError(
+                "Acción no soportada."
+            )
+
+        return self._serialize(
+            productos
+        )
+
+    def _serialize(
+        self,
+        productos
+    ):
+
+        resultado = []
+
+        for producto in productos:
+
+            resultado.append({
+
+                "id": producto.id,
+
+                "nombre": producto.nombre,
+
+                "descripcion": producto.descripcion,
+
+                "precio": float(producto.precio)
+
+            })
+
+        return resultado

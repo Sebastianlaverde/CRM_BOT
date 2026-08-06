@@ -17,48 +17,22 @@ class AIService:
 
         self.provider = self._build_provider()
 
-    def _build_provider(
-        self
-    ) -> BaseProvider:
-
-        match settings.AI_PROVIDER:
-
-            case OPENAI:
-
-                return OpenAIProvider()
-
-            case OLLAMA:
-
-                raise NotImplementedError(
-                    "Ollama aún no implementado."
-                )
-
-            case GEMINI:
-
-                raise NotImplementedError(
-                    "Gemini aún no implementado."
-                )
-
-            case _:
-
-                return MockProvider()
-
     def responder(
         self,
-        prompt: str,
-        mensaje: str,
-        tools: list,
+        prompt,
+        mensaje,
+        tools,
         tool_executor
-    ) -> str:
+    ):
 
         return self.provider.generate(
 
-            prompt=prompt,
+            prompt,
 
-            message=mensaje,
+            mensaje,
 
-            tools=tools,
+            tools,
 
-            tool_executor=tool_executor
+            tool_executor
 
         )
