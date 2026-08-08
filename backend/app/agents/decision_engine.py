@@ -3,41 +3,41 @@ from app.enums import EstadoProspecto
 class DecisionEngine:
 
 
-def decidir(
-    self,
-    respuesta_ia: str,
-    contexto: dict
-):
+    def decidir(
+        self,
+        respuesta_ia: str,
+        contexto: dict
+    ):
 
-    acciones = []
+        acciones = []
 
-    prospecto = contexto["prospecto"]
+        prospecto = contexto["prospecto"]
 
-    estado = prospecto.estado
+        estado = prospecto.estado
 
-    if estado == EstadoProspecto.NUEVO:
+        if estado == EstadoProspecto.NUEVO:
 
-        acciones.append({
+            acciones.append({
 
-            "type": "actualizar_estado",
+                "type": "actualizar_estado",
 
-            "prospecto_id": prospecto.id,
+                "prospecto_id": prospecto.id,
 
-            "estado": (
-                EstadoProspecto.CONTACTADO.value
-            ),
+                "estado": (
+                    EstadoProspecto.CONTACTADO.value
+                ),
 
-            "observacion": (
-                "El prospecto recibió "
-                "su primer contacto."
+                "observacion": (
+                    "El prospecto recibió "
+                    "su primer contacto."
+                )
+
             )
 
-        )
+        return {
 
-    return {
+            "contenido": respuesta_ia,
 
-        "contenido": respuesta_ia,
+            "acciones": acciones
 
-        "acciones": acciones
-
-    }
+        }

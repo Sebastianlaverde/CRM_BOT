@@ -1,122 +1,120 @@
 class PromptBuilder:
 
-```
-def build(
-    self,
-    contexto: dict,
-    reglas: list[str],
-    objetivo: str,
-    tools: list[dict]
-):
+    def build(
+        self,
+        contexto: dict,
+        reglas: list[str],
+        objetivo: str,
+        tools: list[dict]
+    ):
 
-    prospecto = contexto["prospecto"]
+        prospecto = contexto["prospecto"]
 
-    prompt = f"""
-```
+        prompt = f"""
 
-Eres un asesor comercial experto de la empresa.
 
-=========================
-OBJETIVO
-========
+    Eres un asesor comercial experto de la empresa.
 
-{objetivo}
+    =========================
+    OBJETIVO
+    ========
 
-=========================
-INFORMACIÓN DEL CLIENTE
-=======================
+    {objetivo}
 
-Empresa: {prospecto.nombre_empresa}
+    =========================
+    INFORMACIÓN DEL CLIENTE
+    =======================
 
-Contacto: {prospecto.nombre_contacto or "No registrado"}
+    Empresa: {prospecto.nombre_empresa}
 
-Ciudad: {prospecto.ciudad}
+    Contacto: {prospecto.nombre_contacto or "No registrado"}
 
-Estado comercial: {prospecto.estado.value}
+    Ciudad: {prospecto.ciudad}
 
-=========================
-REGLAS
-======
+    Estado comercial: {prospecto.estado.value}
 
-"""
+    =========================
+    REGLAS
+    ======
 
-```
-    for regla in reglas:
-        prompt += f"- {regla}\n"
+    """
 
-    prompt += """
-```
 
-=========================
-HERRAMIENTAS DISPONIBLES
-========================
+        for regla in reglas:
+            prompt += f"- {regla}\n"
 
-"""
+        prompt += """
+    ```
 
-```
-    for tool in tools:
+    =========================
+    HERRAMIENTAS DISPONIBLES
+    ========================
 
-        prompt += (
-            f"- {tool['name']}\n"
-            f"  Descripción: {tool['description']}\n"
-        )
+    """
 
-        parameters = tool.get("parameters")
 
-        if parameters:
+        for tool in tools:
 
             prompt += (
-                "  Parámetros disponibles:\n"
+                f"- {tool['name']}\n"
+                f"  Descripción: {tool['description']}\n"
             )
 
-            properties = parameters.get(
-                "properties",
-                {}
-            )
+            parameters = tool.get("parameters")
 
-            required = parameters.get(
-                "required",
-                []
-            )
-
-            for parametro, info in properties.items():
-
-                requerido = (
-                    "Sí"
-                    if parametro in required
-                    else "No"
-                )
-
-                tipo = info.get(
-                    "type",
-                    "desconocido"
-                )
+            if parameters:
 
                 prompt += (
-                    f"    - {parametro}"
-                    f" ({tipo})"
-                    f" | Requerido: {requerido}\n"
+                    "  Parámetros disponibles:\n"
                 )
 
-    prompt += """
-```
+                properties = parameters.get(
+                    "properties",
+                    {}
+                )
 
-=========================
-INSTRUCCIONES
-=============
+                required = parameters.get(
+                    "required",
+                    []
+                )
 
-* Responde de forma profesional.
-* Sé amable y natural.
-* No inventes información.
-* Utiliza las herramientas disponibles cuando necesites consultar o modificar información del sistema.
-* No inventes productos, precios, cotizaciones, estados ni información del cliente.
-* Si una herramienta no tiene la información necesaria, indícalo claramente.
-* Si una herramienta devuelve un error, intenta comprenderlo antes de responder.
-* Si necesitas información adicional del cliente para realizar una acción, solicítala.
-* Si necesitas ayuda de un asesor humano, indícalo.
-* Tu objetivo es ayudar al cliente y avanzar en el proceso comercial.
-  """
+                for parametro, info in properties.items():
 
-  ```
-    return prompt
-  ```
+                    requerido = (
+                        "Sí"
+                        if parametro in required
+                        else "No"
+                    )
+
+                    tipo = info.get(
+                        "type",
+                        "desconocido"
+                    )
+
+                    prompt += (
+                        f"    - {parametro}"
+                        f" ({tipo})"
+                        f" | Requerido: {requerido}\n"
+                    )
+
+        prompt += """
+    ```
+
+    =========================
+    INSTRUCCIONES
+    =============
+
+    * Responde de forma profesional.
+    * Sé amable y natural.
+    * No inventes información.
+    * Utiliza las herramientas disponibles cuando necesites consultar o modificar información del sistema.
+    * No inventes productos, precios, cotizaciones, estados ni información del cliente.
+    * Si una herramienta no tiene la información necesaria, indícalo claramente.
+    * Si una herramienta devuelve un error, intenta comprenderlo antes de responder.
+    * Si necesitas información adicional del cliente para realizar una acción, solicítala.
+    * Si necesitas ayuda de un asesor humano, indícalo.
+    * Tu objetivo es ayudar al cliente y avanzar en el proceso comercial.
+    """
+    
+        return prompt
+    
