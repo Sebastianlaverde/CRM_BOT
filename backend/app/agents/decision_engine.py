@@ -1,33 +1,43 @@
 from app.enums import EstadoProspecto
 
-
 class DecisionEngine:
 
-    def decidir(
-        self,
-        respuesta_ia: str,
-        contexto: dict
-    ):
 
-        acciones = []
+def decidir(
+    self,
+    respuesta_ia: str,
+    contexto: dict
+):
 
-        prospecto = contexto["prospecto"]
+    acciones = []
 
-        estado = prospecto.estado
+    prospecto = contexto["prospecto"]
 
-        if estado == EstadoProspecto.NUEVO:
+    estado = prospecto.estado
 
-            acciones.append(
-                {
-                    "type": "actualizar_estado",
-                    "estado": EstadoProspecto.CONTACTADO
-                }
+    if estado == EstadoProspecto.NUEVO:
+
+        acciones.append({
+
+            "type": "actualizar_estado",
+
+            "prospecto_id": prospecto.id,
+
+            "estado": (
+                EstadoProspecto.CONTACTADO.value
+            ),
+
+            "observacion": (
+                "El prospecto recibió "
+                "su primer contacto."
             )
 
-        return {
+        )
 
-            "contenido": respuesta_ia,
+    return {
 
-            "acciones": acciones
+        "contenido": respuesta_ia,
 
-        }
+        "acciones": acciones
+
+    }

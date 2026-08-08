@@ -1,115 +1,135 @@
+from app.agents.context_builder import ContextBuilder
+from app.agents.prompt_builder import PromptBuilder
+from app.agents.rule_engine import RuleEngine
+from app.agents.objective_engine import ObjectiveEngine
+from app.agents.ai_service import AIService
+from app.agents.tool_manager import ToolManager
+from app.agents.decision_engine import DecisionEngine
+
 class AgentPipeline:
 
-    def __init__(self, db):
 
-        self.context_builder = ContextBuilder(db)
+def __init__(
+    self,
+    db
+):
 
-        self.prompt_builder = PromptBuilder()
+    self.context_builder = ContextBuilder(db)
 
-        self.rule_engine = RuleEngine()
+    self.prompt_builder = PromptBuilder()
 
-        self.objective_engine = ObjectiveEngine()
+    self.rule_engine = RuleEngine()
 
-        self.ai_service = AIService()
+    self.objective_engine = ObjectiveEngine()
 
-        self.tool_manager = ToolManager(db)
+    self.ai_service = AIService()
 
-        self.decision_engine = DecisionEngine()
-    
-    def execute(
-        self,
-        prospecto_id,
-        mensaje
-    ):
+    self.tool_manager = ToolManager(db)
 
-        contexto = self._build_context(
-            prospecto_id
-        )
+    self.decision_engine = DecisionEngine()
 
-        prompt = self._build_prompt(
-            contexto,
-            mensaje
-        )
+def execute(
+    self,
+    prospecto_id,
+    mensaje
+):
 
-        tools = self.tool_manager.get_openai_tools()
-
-        respuesta = self._call_ai(
-
-            prompt=prompt,
-
-            mensaje=mensaje,
-
-            tools=tools
-
-        )
-
-        decision = self.decision_engine.decidir(
-
-            respuesta_ia=respuesta,
-
-            contexto=contexto
-
-        )
-
-        return decision
-
-    def _build_context(
-        self,
+    contexto = self._build_context(
         prospecto_id
-    ):
+    )
 
-        return self.context_builder.build(
-            prospecto_id
-        )
-
-    def _build_prompt(
-        self,
+    prompt = self._build_prompt(
         contexto,
         mensaje
-    ):
+    )
 
-        tools = self.tool_manager.get_available_tools()
+    tools = (
+        self.tool_manager
+        .get_openai_tools()
+    )
 
-        reglas = self.rule_engine.evaluate(
-            contexto,
-            mensaje
-        )
+    respuesta = self._call_ai(
 
-        objetivo = self.objective_engine.get_objective(
+        prompt=prompt,
+
+        mensaje=mensaje,
+
+        tools=tools
+
+    )
+
+    decision = self.decision_engine.decidir(
+
+        respuesta_ia=respuesta,
+
+        contexto=contexto
+
+    )
+
+    return decision
+
+def _build_context(
+    self,
+    prospecto_id
+):
+
+    return self.context_builder.build(
+        prospecto_id
+    )
+
+def _build_prompt(
+    self,
+    contexto,
+    mensaje
+):
+
+    tools = (
+        self.tool_manager
+        .get_available_tools()
+    )
+
+    reglas = self.rule_engine.evaluate(
+
+        contexto,
+
+        mensaje
+
+    )
+
+    objetivo = (
+        self.objective_engine
+        .get_objective(
             contexto["prospecto"].estado
         )
+    )
 
-        return self.prompt_builder.build(
+    return self.prompt_builder.build(
 
-            contexto=contexto,
+        contexto=contexto,
 
-            reglas=reglas,
+        reglas=reglas,
 
-            objetivo=objetivo,
+        objetivo=objetivo,
 
-            tools=tools
+        tools=tools
 
-        )
+    )
 
-    def _call_ai(
-        self,
-        prompt,
-        mensaje,
-        tools
-    ):
+def _call_ai(
+    self,
+    prompt,
+    mensaje,
+    tools
+):
 
-        return self.ai_service.responder(
-            prompt=prompt,
-            mensaje=mensaje,
-            tools=tools,
-            tool_executor=self.tool_manager.execute
-        )
+    return self.ai_service.responder(
 
-    def _process_decision(
-        self,
-        respuesta
-    ):
+        prompt=prompt,
 
-        return self.decision_engine.decidir(
-            respuesta
-        )
+        mensaje=mensaje,
+
+        tools=tools,
+
+        tool_executor=self.tool_manager.execute
+
+    )

@@ -1,27 +1,30 @@
 class PromptBuilder:
 
-     def build(
-        self,
-        contexto: dict,
-        reglas: list[str],
-        objetivo: str,
-        tools: list[dict]
-    ):
+```
+def build(
+    self,
+    contexto: dict,
+    reglas: list[str],
+    objetivo: str,
+    tools: list[dict]
+):
 
-        prospecto = contexto["prospecto"]
+    prospecto = contexto["prospecto"]
 
-        prompt = f"""
+    prompt = f"""
+```
+
 Eres un asesor comercial experto de la empresa.
 
 =========================
 OBJETIVO
-=========================
+========
 
 {objetivo}
 
 =========================
 INFORMACIÓN DEL CLIENTE
-=========================
+=======================
 
 Empresa: {prospecto.nombre_empresa}
 
@@ -33,61 +36,87 @@ Estado comercial: {prospecto.estado.value}
 
 =========================
 REGLAS
-=========================
+======
 
 """
 
-        for regla in reglas:
-            prompt += f"- {regla}\n"
+```
+    for regla in reglas:
+        prompt += f"- {regla}\n"
 
-        prompt += """
+    prompt += """
+```
 
 =========================
 HERRAMIENTAS DISPONIBLES
-=========================
+========================
 
 """
 
-        for tool in tools:
+```
+    for tool in tools:
+
+        prompt += (
+            f"- {tool['name']}\n"
+            f"  Descripción: {tool['description']}\n"
+        )
+
+        parameters = tool.get("parameters")
+
+        if parameters:
 
             prompt += (
-                f"- {tool['name']}\n"
-                f"  Descripción: {tool['description']}\n"
+                "  Parámetros disponibles:\n"
             )
 
-            if tool["parameters"]:
+            properties = parameters.get(
+                "properties",
+                {}
+            )
 
-                prompt += "  Parámetros:\n"
+            required = parameters.get(
+                "required",
+                []
+            )
 
-                for parametro, info in tool["parameters"].items():
+            for parametro, info in properties.items():
 
-                    requerido = (
-                        "Sí"
-                        if info.get("required", False)
-                        else "No"
-                    )
+                requerido = (
+                    "Sí"
+                    if parametro in required
+                    else "No"
+                )
 
-                    prompt += (
-                        f"    - {parametro}"
-                        f" ({info['type']})"
-                        f" | Requerido: {requerido}\n"
-                    )
+                tipo = info.get(
+                    "type",
+                    "desconocido"
+                )
 
-            prompt += "\n"
+                prompt += (
+                    f"    - {parametro}"
+                    f" ({tipo})"
+                    f" | Requerido: {requerido}\n"
+                )
 
-        prompt += """
+    prompt += """
+```
 
 =========================
 INSTRUCCIONES
-=========================
+=============
 
-- Responde de forma profesional.
-- Sé amable y natural.
-- No inventes información.
-- Si necesitas consultar información del sistema, utiliza la herramienta adecuada.
-- Si una herramienta no tiene la información necesaria, indícalo al cliente.
-- Si necesitas ayuda de un asesor humano, indícalo.
-- Tu objetivo es ayudar al cliente y avanzar en el proceso comercial.
-"""
+* Responde de forma profesional.
+* Sé amable y natural.
+* No inventes información.
+* Utiliza las herramientas disponibles cuando necesites consultar o modificar información del sistema.
+* No inventes productos, precios, cotizaciones, estados ni información del cliente.
+* Si una herramienta no tiene la información necesaria, indícalo claramente.
+* Si una herramienta devuelve un error, intenta comprenderlo antes de responder.
+* Si necesitas información adicional del cliente para realizar una acción, solicítala.
+* Si necesitas ayuda de un asesor humano, indícalo.
+* Tu objetivo es ayudar al cliente y avanzar en el proceso comercial.
+  """
 
-        return prompt
+  ```
+    return prompt
+  ```

@@ -2,92 +2,82 @@ from sqlalchemy.orm import Session
 
 from app.agents.tools.producto_tool import ProductoTool
 from app.agents.tools.prospecto_tool import ProspectoTool
-from app.agents.tools.cotizacion_tool import CotizacionTool
-from app.agents.tools.historial_tool import HistorialTool
-from app.agents.tools.evento_tool import EventoTool
 
 class ToolManager:
 
-    def __init__(
-        self,
-        db: Session
-    ):
 
-        self.tools = {}
+def __init__(
+    self,
+    db: Session
+):
 
-        self.register(
-            ProductoTool(db)
+    self.tools = {}
+
+    self.register(
+        ProductoTool(db)
+    )
+
+    self.register(
+        ProspectoTool(db)
+    )
+
+def register(
+    self,
+    tool
+):
+
+    self.tools[tool.name] = tool
+
+def get_available_tools(
+    self
+):
+
+    tools = []
+
+    for tool in self.tools.values():
+
+        tools.append({
+
+            "name": tool.name,
+
+            "description": tool.description,
+
+            "parameters": tool.parameters
+
+        })
+
+    return tools
+
+def get_openai_tools(
+    self
+):
+
+    return [
+
+        tool.to_openai_function()
+
+        for tool in self.tools.values()
+
+    ]
+
+def execute(
+    self,
+    tool_name,
+    **kwargs
+):
+
+    tool = self.tools.get(
+        tool_name
+    )
+
+    if tool is None:
+
+        raise ValueError(
+            f"Herramienta "
+            f"'{tool_name}' "
+            f"no encontrada."
         )
 
-        self.register(
-            ProspectoTool(db)
-        )
-
-        self.register(
-            CotizacionTool(db)
-        )
-
-        self.register(
-            HistorialTool(db)
-        )
-
-    def register(
-        self,
-        tool
-    ):
-
-        self.tools[
-            tool.name
-        ] = tool
-
-    def get_available_tools(
-        self
-    ):
-
-        return [
-
-            {
-
-                "name": tool.name,
-
-                "description": tool.description,
-
-                "parameters": tool.parameters
-
-            }
-
-            for tool in self.tools.values()
-
-        ]
-
-    def get_openai_tools(
-        self
-    ):
-
-        return [
-
-            tool.to_openai_function()
-
-            for tool in self.tools.values()
-
-        ]
-
-    def execute(
-        self,
-        tool_name: str,
+    return tool.execute(
         **kwargs
-    ):
-
-        tool = self.tools.get(
-            tool_name
-        )
-
-        if tool is None:
-
-            raise ValueError(
-                f"Herramienta '{tool_name}' no encontrada."
-            )
-
-        return tool.execute(
-            **kwargs
-        )
+    )
