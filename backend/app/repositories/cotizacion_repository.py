@@ -46,6 +46,27 @@ class CotizacionRepository:
             .all()
         )
 
+    def listar_por_prospecto(
+        self,
+        prospecto_id: int
+    ):
+
+        return (
+            self.db.query(Cotizacion)
+            .options(
+                joinedload(Cotizacion.detalles).joinedload(
+                    DetalleCotizacion.producto
+                )
+            )
+            .filter(
+                Cotizacion.prospecto_id == prospecto_id
+            )
+            .order_by(
+                Cotizacion.created_at.desc()
+            )
+            .all()
+        )
+
     def flush(self):
 
         self.db.flush()

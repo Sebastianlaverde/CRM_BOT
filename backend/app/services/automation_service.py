@@ -69,8 +69,32 @@ class AutomationService:
     def _interesado(self, prospecto):
         pass
 
-    def _cotizado(self, prospecto):
-        pass
+    def _cotizado(
+        self,
+        prospecto
+    ):
+
+        self.webhook.enviar(
+
+            evento="prospecto.cotizado",
+
+            payload={
+
+                "prospecto_id": prospecto.id,
+
+                "empresa": prospecto.nombre_empresa,
+
+                "contacto": prospecto.nombre_contacto,
+
+                "telefono": prospecto.telefono,
+
+                "correo": prospecto.correo,
+
+                "ciudad": prospecto.ciudad,
+
+                "estado": prospecto.estado.value
+            }
+        )
 
     def _negociacion(self, prospecto):
         pass

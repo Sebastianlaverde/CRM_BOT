@@ -20,6 +20,11 @@ class ProspectoStateService:
         ],
 
         EstadoProspecto.CONTACTADO: [
+            EstadoProspecto.RESPONDIO,
+            EstadoProspecto.DESCARTADO,
+        ],
+
+        EstadoProspecto.RESPONDIO: [
             EstadoProspecto.INTERESADO,
             EstadoProspecto.DESCARTADO,
         ],

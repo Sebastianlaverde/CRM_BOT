@@ -114,7 +114,24 @@ class PromptBuilder:
     * Si necesitas información adicional del cliente para realizar una acción, solicítala.
     * Si necesitas ayuda de un asesor humano, indícalo.
     * Tu objetivo es ayudar al cliente y avanzar en el proceso comercial.
+
+    =========================
+    ESCALAMIENTO A HUMANO
+    =====================
+
+    Si consideras que la conversación debe ser atendida por un
+    asesor humano (el cliente lo solicita explícitamente, hay una
+    queja grave, una negociación fuera de tus reglas, o cualquier
+    situación que no puedas resolver con las herramientas
+    disponibles), inicia tu respuesta EXACTAMENTE con la etiqueta
+    [ESCALAR_A_HUMANO] seguida de tu mensaje normal para el
+    cliente. Ejemplo:
+
+    [ESCALAR_A_HUMANO] Entiendo tu inquietud, en un momento un
+    asesor de nuestro equipo se pondrá en contacto contigo.
+
+    Usa esta etiqueta solo cuando sea necesario escalar. En
+    cualquier otro caso, responde normalmente sin la etiqueta.
     """
     
         return prompt
-    

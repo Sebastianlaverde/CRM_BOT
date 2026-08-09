@@ -16,10 +16,12 @@ class CommercialAgent(BaseAgent):
     def responder(
         self,
         prospecto_id: int,
-        mensaje: str
+        mensaje: str,
+        canal
     ):
 
         return self.pipeline.execute(
             prospecto_id,
-            mensaje
+            mensaje,
+            canal
         )

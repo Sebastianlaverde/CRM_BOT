@@ -58,6 +58,29 @@ class EventoService:
             origen=OrigenEvento.API
         )
     
+    def registrar_escalamiento(
+        self,
+        prospecto,
+        motivo: str
+    ):
+
+        return self.registrar_evento(
+
+            tipo=TipoEvento.ESCALADO_A_HUMANO,
+
+            entidad=EntidadEvento.PROSPECTO,
+
+            entidad_id=prospecto.id,
+
+            descripcion=(
+                f"El agente comercial escaló la conversación "
+                f"con '{prospecto.nombre_empresa}' a un asesor "
+                f"humano. Motivo: {motivo}"
+            ),
+
+            origen=OrigenEvento.SISTEMA
+        )
+
     def obtener_todos(self):
 
         eventos = self.repository.list_all()

@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 
+from app.enums import EntidadEvento
 from app.repositories.prospecto_repository import ProspectoRepository
 from app.repositories.mensaje_repository import MensajeRepository
 from app.repositories.cotizacion_repository import CotizacionRepository
@@ -25,7 +26,8 @@ class ContextBuilder:
 
     def build(
         self,
-        prospecto_id: int
+        prospecto_id: int,
+        canal
     ):
 
         prospecto = self.prospectos.find_by_id(
@@ -37,7 +39,7 @@ class ContextBuilder:
 
         sesion = self.sesiones.obtener_sesion_activa(
             prospecto_id,
-            prospecto.canal if hasattr(prospecto, "canal") else None
+            canal
         )
 
         mensajes = []
@@ -52,8 +54,8 @@ class ContextBuilder:
             prospecto.id
         )
 
-        eventos = self.eventos.listar_por_entidad(
-            "PROSPECTO",
+        eventos = self.eventos.find_by_entidad(
+            EntidadEvento.PROSPECTO,
             prospecto.id
         )
 

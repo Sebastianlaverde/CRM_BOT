@@ -31,11 +31,13 @@ class AgentPipeline:
     def execute(
         self,
         prospecto_id,
-        mensaje
+        mensaje,
+        canal
     ):
 
         contexto = self._build_context(
-            prospecto_id
+            prospecto_id,
+            canal
         )
 
         prompt = self._build_prompt(
@@ -70,11 +72,13 @@ class AgentPipeline:
 
     def _build_context(
         self,
-        prospecto_id
+        prospecto_id,
+        canal
     ):
 
         return self.context_builder.build(
-            prospecto_id
+            prospecto_id,
+            canal
         )
 
     def _build_prompt(

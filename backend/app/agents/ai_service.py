@@ -17,6 +17,26 @@ class AIService:
 
         self.provider = self._build_provider()
 
+    def _build_provider(self) -> BaseProvider:
+
+        provider_name = settings.AI_PROVIDER
+
+        if provider_name == OPENAI:
+
+            return OpenAIProvider()
+
+        if provider_name in (OLLAMA, GEMINI):
+
+            raise NotImplementedError(
+                f"El proveedor '{provider_name}' aún "
+                f"no tiene una implementación disponible."
+            )
+
+        raise ValueError(
+            f"AI_PROVIDER '{provider_name}' no es válido. "
+            f"Valores soportados: {OPENAI}, {OLLAMA}, {GEMINI}."
+        )
+
     def responder(
         self,
         prompt,

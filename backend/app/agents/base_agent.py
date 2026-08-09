@@ -7,7 +7,8 @@ class BaseAgent(ABC):
     @abstractmethod
     def responder(
         self,
-        contexto: dict,
-        mensaje: str
+        prospecto_id: int,
+        mensaje: str,
+        canal
     ):
         pass

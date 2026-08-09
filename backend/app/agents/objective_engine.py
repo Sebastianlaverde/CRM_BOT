@@ -22,7 +22,7 @@ class ObjectiveEngine:
             EstadoProspecto.INTERESADO:
                 "Preparar una cotización.",
 
-            EstadoProspecto.COTIZACION_ENVIADA:
+            EstadoProspecto.COTIZADO:
                 "Resolver dudas sobre la cotización.",
 
             EstadoProspecto.NEGOCIACION:

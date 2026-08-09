@@ -36,13 +36,15 @@ class ToolManager:
 
         for tool in self.tools.values():
 
+            openai_function = tool.to_openai_function()
+
             tools.append({
 
                 "name": tool.name,
 
                 "description": tool.description,
 
-                "parameters": tool.parameters
+                "parameters": openai_function["parameters"]
 
             })
 

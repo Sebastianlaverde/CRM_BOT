@@ -29,6 +29,12 @@ class Producto(Base):
         nullable=False
     )
 
+    referencia: Mapped[str | None] = mapped_column(
+        String(50),
+        nullable=True,
+        unique=True
+    )
+
     descripcion: Mapped[str | None] = mapped_column(
         Text,
         nullable=True

@@ -26,45 +26,54 @@ class ProductoTool(BaseTool):
 
         return {
 
-            "type": "object",
+            "accion": {
 
-            "properties": {
+                "type": "string",
 
-                "accion": {
+                "description": (
+                    "Acción a realizar sobre el catálogo "
+                    "de productos."
+                ),
 
-                    "type": "string",
+                "enum": [
 
-                    "enum": [
+                    "listar",
 
-                        "listar",
+                    "buscar_nombre",
 
-                        "buscar_nombre",
+                    "buscar_referencia"
 
-                        "buscar_referencia"
+                ],
 
-                    ]
-
-                },
-
-                "nombre": {
-
-                    "type": "string"
-
-                },
-
-                "referencia": {
-
-                    "type": "string"
-
-                }
+                "required": True
 
             },
 
-            "required": [
+            "nombre": {
 
-                "accion"
+                "type": "string",
 
-            ]
+                "description": (
+                    "Nombre o parte del nombre del "
+                    "producto a buscar."
+                ),
+
+                "required": False
+
+            },
+
+            "referencia": {
+
+                "type": "string",
+
+                "description": (
+                    "Referencia o código del "
+                    "producto a buscar."
+                ),
+
+                "required": False
+
+            }
 
         }
 

@@ -10,6 +10,8 @@ class ProductoBase(BaseModel):
 
     nombre: str
 
+    referencia: Optional[str] = None
+
     descripcion: Optional[str] = None
 
     precio: Decimal
@@ -22,6 +24,8 @@ class ProductoCreate(ProductoBase):
 class ProductoUpdate(BaseModel):
 
     nombre: Optional[str] = None
+
+    referencia: Optional[str] = None
 
     descripcion: Optional[str] = None
 

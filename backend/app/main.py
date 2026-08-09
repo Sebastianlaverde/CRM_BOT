@@ -15,6 +15,7 @@ from app.routers.historial import router as historial_router
 from app.routers.productos import router as productos_router
 from app.routers.cotizaciones import router as cotizaciones_router
 from app.routers.eventos import router as eventos_router
+from app.routers.conversacion import router as conversacion_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -37,6 +38,7 @@ app.include_router(historial_router)
 app.include_router(productos_router)
 app.include_router(cotizaciones_router)
 app.include_router(eventos_router)
+app.include_router(conversacion_router)
 
 @app.get("/", tags=["System"])
 def root():
