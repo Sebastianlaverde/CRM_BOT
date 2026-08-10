@@ -163,6 +163,20 @@ class CotizacionService:
         )
 
 
+    def obtener_por_prospecto(
+        self,
+        prospecto_id: int
+    ) -> list[Cotizacion]:
+
+        cotizaciones = self.cotizacion_repository.listar_por_prospecto(
+            prospecto_id
+        )
+
+        return CotizacionMapper.to_response_list(
+            cotizaciones
+        )
+
+
     def obtener_por_id(
         self,
         cotizacion_id: int

@@ -19,6 +19,7 @@ class ProspectoBase(BaseModel):
     direccion: Optional[str] = None
     tipo_negocio: TipoNegocio
     origen: OrigenProspecto = OrigenProspecto.MANUAL
+    google_place_id: Optional[str] = None
     observaciones: Optional[str] = None
 
 

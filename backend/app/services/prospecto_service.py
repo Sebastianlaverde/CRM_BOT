@@ -34,7 +34,12 @@ class ProspectoService:
 
     def buscar_por_id(self, prospecto_id: int):
         return self.repository.find_by_id(prospecto_id)
-    
+
+    def buscar_por_google_place_id(self, google_place_id: str):
+        return self.repository.buscar_por_google_place_id(
+            google_place_id
+        )
+
     def actualizar_prospecto(
         self,
         prospecto_id: int,

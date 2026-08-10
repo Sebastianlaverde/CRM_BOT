@@ -3,7 +3,8 @@ from app.core.config import settings
 from app.constants.ai import (
     OPENAI,
     OLLAMA,
-    GEMINI
+    GEMINI,
+    MOCK
 )
 
 from app.agents.providers.base_provider import BaseProvider
@@ -25,6 +26,10 @@ class AIService:
 
             return OpenAIProvider()
 
+        if provider_name == MOCK:
+
+            return MockProvider()
+
         if provider_name in (OLLAMA, GEMINI):
 
             raise NotImplementedError(
@@ -34,7 +39,7 @@ class AIService:
 
         raise ValueError(
             f"AI_PROVIDER '{provider_name}' no es válido. "
-            f"Valores soportados: {OPENAI}, {OLLAMA}, {GEMINI}."
+            f"Valores soportados: {OPENAI}, {MOCK}, {OLLAMA}, {GEMINI}."
         )
 
     def responder(

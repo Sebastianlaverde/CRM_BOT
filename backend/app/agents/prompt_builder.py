@@ -44,8 +44,6 @@ class PromptBuilder:
             prompt += f"- {regla}\n"
 
         prompt += """
-    ```
-
     =========================
     HERRAMIENTAS DISPONIBLES
     ========================
@@ -98,8 +96,6 @@ class PromptBuilder:
                     )
 
         prompt += """
-    ```
-
     =========================
     INSTRUCCIONES
     =============

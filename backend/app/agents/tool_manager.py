@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 
 from app.agents.tools.producto_tool import ProductoTool
 from app.agents.tools.prospecto_tool import ProspectoTool
+from app.agents.tools.cotizacion_tool import CotizacionTool
 
 class ToolManager:
 
@@ -19,6 +20,10 @@ class ToolManager:
 
         self.register(
             ProspectoTool(db)
+        )
+
+        self.register(
+            CotizacionTool(db)
         )
 
     def register(

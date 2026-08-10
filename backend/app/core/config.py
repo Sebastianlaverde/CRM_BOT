@@ -27,6 +27,9 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: str = ""
     OPENAI_MODEL: str = "gpt-5"
 
+    # Google Places (sourcing de prospectos)
+    GOOGLE_PLACES_API_KEY: str = ""
+
     # WhatsApp
     WHATSAPP_TOKEN: str | None = None
     WHATSAPP_PHONE_ID: str | None = None

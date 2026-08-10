@@ -49,6 +49,19 @@ NUEVO → CONTACTADO → RESPONDIO → INTERESADO → COTIZADO → NEGOCIACION �
 - Webhooks a n8n en `prospecto.contactado` y `prospecto.cotizado`
   (payload trae solo datos del prospecto, no el detalle de la cotización
   — si n8n necesita el detalle, debe hacer `GET /cotizaciones` aparte).
+- Sourcing de prospectos desde Google Places API (New): endpoint
+  `POST /api/v1/sourcing/buscar` (`tipo_negocio` + `zona` + `max_resultados`
+  ≤20 + `dry_run`). Usa Text Search con field mask mínimo (`id`,
+  `displayName`, `formattedAddress`, `internationalPhoneNumber`).
+  Descarta negocios sin teléfono, deduplica por `google_place_id`
+  (campo nuevo en `Prospecto`, migración `551353f12a2b`) y también
+  recupera limpio si el teléfono ya existía en otro prospecto. Crea
+  con `origen=GOOGLE_MAPS`, `estado=NUEVO`. Probado end-to-end con
+  datos falsos de Google (dry_run, importación real, dedup, colisión
+  de teléfono, `TipoNegocio.OTRO` rechazado) — **falta la prueba con
+  la API real de Google** (`GOOGLE_PLACES_API_KEY` vacía en `.env`
+  todavía) para validar formato de respuesta real y ver el costo en
+  Cloud Console antes de escalar volumen.
 
 ## Bugs corregidos en esta sesión (por si algo similar reaparece)
 Encontramos ~12 problemas, casi todos con un patrón común:
@@ -72,6 +85,10 @@ completo para detalle de cada uno.
    tras recibir un webhook de WhatsApp — el lado de n8n no está construido)
 6. Escalar a múltiples agentes (`AgentFactory` ya soporta el patrón,
    solo falta agregar más tipos además de `"commercial"`)
+7. ~~Sourcing de prospectos vía Google Places API~~ ✅ construido,
+   falta prueba con la API real de Google (ver abajo) antes de
+   escalar volumen. El primer contacto saliente (WhatsApp con
+   plantillas de marketing) es la fase siguiente, aún sin construir.
 
 ## Decisiones de diseño tomadas
 - n8n es capa delgada de entrada/salida y notificaciones; toda la lógica
@@ -90,3 +107,16 @@ completo para detalle de cada uno.
   escenarios).
 - Decidir si el payload del webhook `prospecto.cotizado` debe incluir el
   detalle completo de la cotización (hoy no lo trae).
+- Falta correr la primera prueba real de sourcing contra Google Places
+  API (New) — hoy `GOOGLE_PLACES_API_KEY` está vacía en `.env`. Cuando
+  se configure, correr `POST /api/v1/sourcing/buscar` con
+  `max_resultados` bajo (1-5) y `dry_run=true` primero, revisar los
+  candidatos, y solo después repetir con `dry_run=false`. Revisar el
+  costo en Google Cloud Console → Billing → Reports filtrado por SKU
+  (el campo `internationalPhoneNumber` cae en un tier más caro que
+  nombre/dirección solos).
+- Decidir el formato canónico de teléfono (con o sin `+`/espacios/
+  indicativo de país) cuando se construya la integración de WhatsApp:
+  el `internationalPhoneNumber` que trae Google no necesariamente
+  coincide con el formato que va a mandar n8n, y `ConversationService`
+  hace match exacto por `telefono`.

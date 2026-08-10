@@ -85,3 +85,16 @@ class ProspectoRepository:
             )
             .first()
         )
+
+    def buscar_por_google_place_id(
+        self,
+        google_place_id: str
+    ):
+
+        return (
+            self.db.query(Prospecto)
+            .filter(
+                Prospecto.google_place_id == google_place_id
+            )
+            .first()
+        )

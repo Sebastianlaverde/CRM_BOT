@@ -96,7 +96,7 @@ class EventoService:
     ):
 
         eventos = self.repository.find_by_entidad(
-            entidad.value,
+            entidad,
             entidad_id
         )
 

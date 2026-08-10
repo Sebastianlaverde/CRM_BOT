@@ -69,6 +69,12 @@ class Prospecto(Base):
         default=OrigenProspecto.MANUAL
     )
 
+    google_place_id: Mapped[str | None] = mapped_column(
+        String(255),
+        nullable=True,
+        unique=True
+    )
+
     estado: Mapped[EstadoProspecto] = mapped_column(
         Enum(EstadoProspecto, native_enum=False),
         nullable=False,

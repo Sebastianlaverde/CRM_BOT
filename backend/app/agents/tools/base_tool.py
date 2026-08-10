@@ -52,6 +52,12 @@ class BaseTool(ABC):
                     info["enum"]
                 )
 
+            if "items" in info:
+
+                property_schema["items"] = (
+                    info["items"]
+                )
+
             properties[parameter] = property_schema
 
             if info.get(
