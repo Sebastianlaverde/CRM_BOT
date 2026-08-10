@@ -7,7 +7,7 @@ class BaseProvider(ABC):
     def generate(
         self,
         prompt: str,
-        message: str,
+        historial: list[dict],
         tools: list,
         tool_executor
     ) -> str:

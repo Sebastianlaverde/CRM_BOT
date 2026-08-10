@@ -5,6 +5,17 @@ from app.agents.objective_engine import ObjectiveEngine
 from app.agents.ai_service import AIService
 from app.agents.tool_manager import ToolManager
 from app.agents.decision_engine import DecisionEngine
+from app.enums import AutorMensaje
+
+ROL_OPENAI_POR_AUTOR = {
+
+    AutorMensaje.CLIENTE: "user",
+
+    AutorMensaje.IA: "assistant",
+
+    AutorMensaje.ASESOR: "assistant",
+
+}
 
 class AgentPipeline:
 
@@ -54,7 +65,7 @@ class AgentPipeline:
 
             prompt=prompt,
 
-            mensaje=mensaje,
+            contexto=contexto,
 
             tools=tools
 
@@ -122,18 +133,48 @@ class AgentPipeline:
     def _call_ai(
         self,
         prompt,
-        mensaje,
+        contexto,
         tools
     ):
+
+        historial = self._build_historial(
+            contexto["mensajes"]
+        )
 
         return self.ai_service.responder(
 
             prompt=prompt,
 
-            mensaje=mensaje,
+            historial=historial,
 
             tools=tools,
 
             tool_executor=self.tool_manager.execute
 
         )
+
+    def _build_historial(
+        self,
+        mensajes
+    ):
+
+        historial = []
+
+        for mensaje in mensajes:
+
+            rol = ROL_OPENAI_POR_AUTOR.get(
+                mensaje.autor
+            )
+
+            if rol is None:
+                continue
+
+            historial.append({
+
+                "role": rol,
+
+                "content": mensaje.contenido
+
+            })
+
+        return historial

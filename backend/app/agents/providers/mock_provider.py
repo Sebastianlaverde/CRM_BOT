@@ -6,7 +6,7 @@ class MockProvider(BaseProvider):
     def generate(
         self,
         prompt: str,
-        message: str,
+        historial: list[dict],
         tools: list,
         tool_executor
     ) -> str:
@@ -14,8 +14,13 @@ class MockProvider(BaseProvider):
         print("===== PROMPT =====")
         print(prompt)
 
-        print("===== MENSAJE =====")
-        print(message)
+        print("===== HISTORIAL =====")
+
+        for turno in historial:
+
+            print(
+                f"{turno['role']}: {turno['content']}"
+            )
 
         return (
             "Hola, gracias por escribirnos. "

@@ -16,14 +16,14 @@ class OpenAIProvider(BaseProvider):
     def generate(
         self,
         prompt: str,
-        message: str,
+        historial: list[dict],
         tools: list,
         tool_executor
     ) -> str:
 
         messages = self._build_messages(
             prompt,
-            message
+            historial
         )
 
         response = self._first_response(
@@ -52,7 +52,7 @@ class OpenAIProvider(BaseProvider):
     def _build_messages(
         self,
         prompt: str,
-        message: str
+        historial: list[dict]
     ):
 
         return [
@@ -62,10 +62,7 @@ class OpenAIProvider(BaseProvider):
                 "content": prompt
             },
 
-            {
-                "role": "user",
-                "content": message
-            }
+            *historial
 
         ]
 

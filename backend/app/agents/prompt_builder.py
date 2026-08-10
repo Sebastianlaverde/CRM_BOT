@@ -25,6 +25,8 @@ class PromptBuilder:
     INFORMACIÓN DEL CLIENTE
     =======================
 
+    ID del prospecto (usar como prospecto_id en las herramientas): {prospecto.id}
+
     Empresa: {prospecto.nombre_empresa}
 
     Contacto: {prospecto.nombre_contacto or "No registrado"}

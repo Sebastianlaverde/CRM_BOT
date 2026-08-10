@@ -28,12 +28,12 @@ class HistorialEstado(Base):
     )
 
     estado_anterior: Mapped[EstadoProspecto] = mapped_column(
-        Enum(EstadoProspecto),
+        Enum(EstadoProspecto, native_enum=False),
         nullable=False
     )
 
     estado_nuevo: Mapped[EstadoProspecto] = mapped_column(
-        Enum(EstadoProspecto),
+        Enum(EstadoProspecto, native_enum=False),
         nullable=False
     )
 

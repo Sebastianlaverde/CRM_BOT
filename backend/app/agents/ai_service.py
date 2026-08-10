@@ -45,7 +45,7 @@ class AIService:
     def responder(
         self,
         prompt,
-        mensaje,
+        historial,
         tools,
         tool_executor
     ):
@@ -54,7 +54,7 @@ class AIService:
 
             prompt,
 
-            mensaje,
+            historial,
 
             tools,
 

@@ -50,10 +50,20 @@ class RuleEngine:
         if estado == EstadoProspecto.RESPONDIO:
 
             reglas.append(
-                "Si el cliente muestra interés genuino en los "
-                "productos (no solo un saludo o pregunta general), "
-                "actualiza su estado a INTERESADO usando "
-                "actualizar_estado."
+                "Actualiza el estado a INTERESADO SOLO si el cliente muestra "
+                "al menos UNA de estas señales concretas: (a) pregunta el "
+                "precio de un producto específico, (b) menciona una cantidad "
+                "o volumen que necesita, (c) describe una necesidad propia de "
+                "su negocio (ej. 'necesito cajas para mi pizzería'), o "
+                "(d) pide explícitamente una cotización. "
+                "NO actualices el estado si el cliente solo pregunta sobre la "
+                "empresa (quién eres, hace cuánto existen), sobre el catálogo "
+                "en general sin especificar su necesidad (ej. '¿qué productos "
+                "manejan?', '¿solo hacen cajas o también otras cosas?'), o "
+                "hace conversación genérica sin señales de intención de compra. "
+                "Ante la duda, NO actualices el estado — es mejor esperar una "
+                "señal más clara en el siguiente mensaje que marcar interés "
+                "de forma prematura."
             )
 
         if estado == EstadoProspecto.INTERESADO:

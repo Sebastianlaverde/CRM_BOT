@@ -63,6 +63,7 @@ NUEVO → CONTACTADO → RESPONDIO → INTERESADO → COTIZADO → NEGOCIACION �
   todavía) para validar formato de respuesta real y ver el costo en
   Cloud Console antes de escalar volumen.
 
+
 ## Bugs corregidos en esta sesión (por si algo similar reaparece)
 Encontramos ~12 problemas, casi todos con un patrón común:
 **inconsistencias de formato/nombre entre capas que nunca se habían
@@ -73,6 +74,7 @@ bloqueaba imports, un campo de modelo usado sin existir, un estado
 huérfano en la máquina de transiciones, y transiciones automáticas que
 se saltaban toda la lógica de negocio). Ver historial de conversación
 completo para detalle de cada uno.
+- reglas de estado ajustadas tras encontrar falso positivo real
 
 ## Qué falta (roadmap)
 1. ~~Tool calling real con OpenAI~~ ✅
@@ -100,11 +102,23 @@ completo para detalle de cada uno.
 - Modelo de OpenAI en uso: `gpt-5` vía Responses API (`client.responses.create`).
 
 ## Pendiente de verificar/decidir
-- Confirmar en producción (con mensajes reales) que las reglas de
-  `RuleEngine` llevan al modelo a actualizar estados correctamente en
-  escenarios reales de conversación (probado hasta ahora con
-  `MockProvider`, falta más prueba con OpenAI real en distintos
-  escenarios).
+- ✅ Confirmada con OpenAI real (no Mock) la máquina de estados
+  completa en una sola conversación de varios turnos, con memoria
+  real entre turnos: NUEVO→CONTACTADO→RESPONDIO (automáticas)
+  →INTERESADO→COTIZADO→NEGOCIACION→CLIENTE (las 4 últimas guiadas por
+  `RuleEngine` vía tool calling, incluyendo `gestionar_cotizacion`
+  real). Prioridad 1 cerrada. En el camino se corrigieron 3 bugs:
+  (1) el prompt nunca incluía el
+  historial de mensajes → cada turno era una conversación nueva desde
+  cero; (2) el prompt nunca incluía `prospecto.id` → el modelo no
+  podía llamar `actualizar_estado`/`gestionar_cotizacion` (le faltaba
+  un parámetro obligatorio) y terminaba pidiéndole al cliente su
+  propio ID de base de datos; (3) `historial_estados.estado_anterior`/
+  `estado_nuevo` seguían atados a un ENUM nativo de Postgres con un
+  label viejo (`COTIZACION_ENVIADA` en vez de `COTIZADO`) nunca
+  sincronizado tras un rename en el enum de Python — convertidas a
+  `varchar` (migración `8f8f727f9685`), igual que ya se había hecho
+  con `prospectos.estado`.
 - Decidir si el payload del webhook `prospecto.cotizado` debe incluir el
   detalle completo de la cotización (hoy no lo trae).
 - Falta correr la primera prueba real de sourcing contra Google Places
