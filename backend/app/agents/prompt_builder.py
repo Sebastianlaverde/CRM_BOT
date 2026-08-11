@@ -5,7 +5,8 @@ class PromptBuilder:
         contexto: dict,
         reglas: list[str],
         objetivo: str,
-        tools: list[dict]
+        tools: list[dict],
+        dias_sin_respuesta: int | None = None
     ):
 
         prospecto = contexto["prospecto"]
@@ -96,6 +97,23 @@ class PromptBuilder:
                         f" ({tipo})"
                         f" | Requerido: {requerido}\n"
                     )
+
+        if dias_sin_respuesta is not None:
+
+            prompt += f"""
+    =========================
+    MENSAJE DE SEGUIMIENTO
+    =======================
+
+    Han pasado {dias_sin_respuesta} día(s) desde tu último mensaje sin
+    que el cliente responda. Este NO es una respuesta a un mensaje del
+    cliente — genera tú el siguiente mensaje para retomar la
+    conversación. Debe ser breve, cordial y natural, sin sonar
+    insistente ni desesperado, y coherente con el estado actual del
+    prospecto y lo último que se habló. No inventes novedades que no
+    existan (por ejemplo, no digas que llegó un pedido si no pasó).
+
+    """
 
         prompt += """
     =========================

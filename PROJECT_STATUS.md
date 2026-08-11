@@ -62,6 +62,68 @@ NUEVO → CONTACTADO → RESPONDIO → INTERESADO → COTIZADO → NEGOCIACION �
   la API real de Google** (`GOOGLE_PLACES_API_KEY` vacía en `.env`
   todavía) para validar formato de respuesta real y ver el costo en
   Cloud Console antes de escalar volumen.
+- Seguimiento comercial automático: endpoint `POST /api/v1/seguimiento/ejecutar`
+  (`dry_run`, disparado por cron en n8n — no hay scheduler embebido en
+  la API). Detecta prospectos "esperando cliente" hace más de X días
+  (umbral por estado en `SeguimientoService.UMBRAL_DIAS_POR_ESTADO`:
+  CONTACTADO 3, RESPONDIO 2, INTERESADO 2, COTIZADO 3, NEGOCIACION 2;
+  excluye CLIENTE/DESCARTADO/inactivos), genera el mensaje reusando
+  `AgentPipeline` (modo seguimiento, sin mensaje entrante), lo registra
+  como `Mensaje` IA + `Evento` `SEGUIMIENTO_ENVIADO`, y dispara webhook
+  `prospecto.seguimiento`. Activó `SesionConversacion.estado`/
+  `ultima_actividad` (existían en el modelo pero nunca se escribían).
+  **No envía nada por WhatsApp de verdad todavía** — no existe esa
+  integración; solo genera y registra. Ojo con esto para cuando se
+  construya: fuera de la ventana de 24h de WhatsApp Business API un
+  mensaje saliente iniciado por nosotros debe ser plantilla aprobada,
+  no texto libre — el texto que genera hoy el agente probablemente no
+  sirva tal cual. Probado end-to-end con datos reales (dry_run sin
+  escribir nada, envío real con mensaje/evento/reset de
+  `ultima_actividad` verificados en DB, no re-dispara inmediatamente,
+  prospecto en `CLIENTE` queda excluido aunque su sesión esté vieja).
+- Workflow de n8n para mensajes entrantes de WhatsApp:
+  `n8n/workflows/whatsapp-inbound.json` (exportado, para importar
+  manual vía "Import from File"). 6 nodos: `Webhook` → `Extraer datos
+  de WhatsApp` (formato real de Meta Cloud API,
+  `entry[0].changes[0].value.messages[0]`, asume `type=="text"` y un
+  solo mensaje por payload) → `Transformar a formato API` (arma
+  `{telefono, contenido, canal: "WHATSAPP"}` sin normalizar el
+  teléfono — n8n se mantiene como capa delgada) → `HTTP Request` a
+  `http://api:8000/api/v1/conversaciones/mensajes` (nombre del
+  servicio docker, no localhost) con `onError: continueErrorOutput`
+  → rama de éxito `Simular envío WhatsApp (placeholder)` (solo deja
+  la respuesta lista, no envía nada real) / rama de error `Error - No
+  se pudo procesar el mensaje`. Sin credenciales de Meta ni número
+  verificado — el Webhook se dispara manual con un JSON de prueba
+  (`payload.json` en la raíz del repo). ✅ Importado y probado por el
+  usuario en su instancia de n8n — funcionó correctamente.
+- Normalización de teléfono: `app/utils/telefono.py`
+  (`normalizar_telefono()`) convierte cualquier entrada a formato
+  E.164 sin `+` (solo dígitos, con indicativo `57`, ej.
+  `573009999001`) — el mismo formato que exige la API de WhatsApp
+  Business Cloud tanto para identificar quién escribe como para el
+  futuro envío saliente. Aplicado como `field_validator` en
+  `ProspectoCreate`/`ProspectoUpdate` (`schemas/prospecto.py`), así
+  que se normaliza sin importar la puerta de entrada: alta manual,
+  `SourcingService` (Google Places, con su propia categoría de
+  descarte `descartado_telefono_invalido` para números que no
+  calzan, sin tumbar el resto del batch), o el futuro envío de
+  WhatsApp. Se hizo backfill de los 4 prospectos reales que ya
+  existían sin indicativo (script one-off, no en el repo) — 3
+  registros de prueba con teléfonos basura (`"string"`, `4332432`,
+  `1521451`) se dejaron sin tocar, no son números reales.
+  `payload.json` se actualizó al formato real de Meta (con
+  indicativo) para que el test contra n8n siga siendo válido.
+  Probado end-to-end: alta manual con y sin indicativo, teléfono
+  inválido → 422 limpio, mensaje entrante con formato real de Meta
+  (`573009999001`) encuentra correctamente al prospecto ya
+  normalizado en la base (antes de este fix, este caso fallaba con
+  "No existe un prospecto con ese teléfono"). Validado además con
+  test unitario (`backend/tests/test_telefono.py`, 9 casos, corridos
+  con `pytest` — primera infraestructura de tests del proyecto,
+  ver Comandos en CLAUDE.md) contra el formato real documentado por
+  Google Places (`"+57 318 1329452"` → `"573181329452"`), el formato
+  de alta manual sin indicativo, e idempotencia.
 
 
 ## Bugs corregidos en esta sesión (por si algo similar reaparece)
@@ -80,11 +142,16 @@ completo para detalle de cada uno.
 1. ~~Tool calling real con OpenAI~~ ✅
 2. ~~Actualización automática de estados~~ ✅ (mecánicas + guiadas por reglas)
 3. ~~Cotizaciones generadas por el agente~~ ✅
-4. Seguimiento comercial (follow-ups automáticos, ej. recordar cotización
-   sin respuesta después de X días) — pendiente
-5. Integración completa WhatsApp + n8n (hoy solo existe el endpoint
-   `POST /api/v1/conversaciones/mensajes`, pensado para que n8n lo llame
-   tras recibir un webhook de WhatsApp — el lado de n8n no está construido)
+4. ~~Seguimiento comercial (follow-ups automáticos)~~ ✅ construido
+   (ver arriba). Falta conectar el cron real en n8n (hoy se dispara
+   manual) y, más adelante, el envío real por WhatsApp.
+5. Integración completa WhatsApp + n8n — en progreso: el workflow de
+   n8n (entrada) está construido y **probado por el usuario en su
+   instancia de n8n** ✅. El formato de teléfono también quedó resuelto
+   (ver arriba). Falta: registrar el webhook de producción en Meta con
+   un número verificado, y reemplazar el nodo placeholder por el envío
+   real (credenciales de Meta + probablemente plantillas aprobadas
+   para mensajes fuera de la ventana de 24h).
 6. Escalar a múltiples agentes (`AgentFactory` ya soporta el patrón,
    solo falta agregar más tipos además de `"commercial"`)
 7. ~~Sourcing de prospectos vía Google Places API~~ ✅ construido,
@@ -129,8 +196,10 @@ completo para detalle de cada uno.
   costo en Google Cloud Console → Billing → Reports filtrado por SKU
   (el campo `internationalPhoneNumber` cae en un tier más caro que
   nombre/dirección solos).
-- Decidir el formato canónico de teléfono (con o sin `+`/espacios/
-  indicativo de país) cuando se construya la integración de WhatsApp:
-  el `internationalPhoneNumber` que trae Google no necesariamente
-  coincide con el formato que va a mandar n8n, y `ConversationService`
-  hace match exacto por `telefono`.
+- ✅ Formato canónico de teléfono resuelto: E.164 sin `+` con
+  indicativo `57` (ver `app/utils/telefono.py` arriba). Riesgo
+  residual conocido y aceptado por ahora: la normalización asume
+  números colombianos de 10 dígitos locales — si el negocio se
+  expande a otro país, `normalizar_telefono()` hay que revisarla (hoy
+  rechazaría números extranjeros válidos, tratándolos como
+  inválidos).

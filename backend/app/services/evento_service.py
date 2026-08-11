@@ -81,6 +81,29 @@ class EventoService:
             origen=OrigenEvento.SISTEMA
         )
 
+    def registrar_seguimiento_enviado(
+        self,
+        prospecto,
+        dias_sin_respuesta: int
+    ):
+
+        return self.registrar_evento(
+
+            tipo=TipoEvento.SEGUIMIENTO_ENVIADO,
+
+            entidad=EntidadEvento.PROSPECTO,
+
+            entidad_id=prospecto.id,
+
+            descripcion=(
+                f"Se envió un mensaje de seguimiento a "
+                f"'{prospecto.nombre_empresa}' tras "
+                f"{dias_sin_respuesta} día(s) sin respuesta."
+            ),
+
+            origen=OrigenEvento.SISTEMA
+        )
+
     def obtener_todos(self):
 
         eventos = self.repository.list_all()

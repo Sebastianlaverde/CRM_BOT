@@ -3,8 +3,10 @@ from sqlalchemy.orm import Session
 from app.enums import (
     CanalComunicacion,
     EstadoConversacion,
+    EstadoProspecto,
 )
 from app.models.sesion_conversacion import SesionConversacion
+from app.models.prospecto import Prospecto
 
 
 class SesionRepository:
@@ -46,6 +48,29 @@ class SesionRepository:
         self.db.refresh(sesion)
 
         return sesion
+
+    def listar_esperando_cliente(
+        self
+    ):
+
+        return (
+            self.db.query(SesionConversacion)
+            .join(
+                Prospecto,
+                SesionConversacion.prospecto_id == Prospecto.id
+            )
+            .filter(
+                SesionConversacion.estado == (
+                    EstadoConversacion.ESPERANDO_CLIENTE
+                ),
+                Prospecto.activo.is_(True),
+                Prospecto.estado.notin_([
+                    EstadoProspecto.CLIENTE,
+                    EstadoProspecto.DESCARTADO,
+                ]),
+            )
+            .all()
+        )
 
     def obtener_o_crear(
         self,

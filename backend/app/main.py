@@ -17,6 +17,7 @@ from app.routers.cotizaciones import router as cotizaciones_router
 from app.routers.eventos import router as eventos_router
 from app.routers.conversacion import router as conversacion_router
 from app.routers.sourcing import router as sourcing_router
+from app.routers.seguimiento import router as seguimiento_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -41,6 +42,7 @@ app.include_router(cotizaciones_router)
 app.include_router(eventos_router)
 app.include_router(conversacion_router)
 app.include_router(sourcing_router)
+app.include_router(seguimiento_router)
 
 @app.get("/", tags=["System"])
 def root():

@@ -1,21 +1,17 @@
 from sqlalchemy.orm import Session
-import logging
 
 from app.enums import (
     AutorMensaje,
     TipoMensaje,
-    EstadoProspecto,
+    EstadoConversacion,
 )
 from app.models.mensaje import Mensaje
 from app.repositories.mensaje_repository import MensajeRepository
 from app.repositories.prospecto_repository import ProspectoRepository
 from app.services.sesion_service import SesionService
-from app.services.evento_service import EventoService
-from app.services.prospecto_service import ProspectoService
+from app.services.decision_action_executor import DecisionActionExecutor
 from app.agents.agent_factory import AgentFactory
 from app.enums.decision_type import DecisionType
-
-logger = logging.getLogger(__name__)
 
 class ConversationService:
 
@@ -29,9 +25,7 @@ class ConversationService:
 
         self.mensaje_repository = MensajeRepository(db)
 
-        self.evento_service = EventoService(db)
-
-        self.prospecto_service = ProspectoService(db)
+        self.action_executor = DecisionActionExecutor(db)
 
         self.agent = AgentFactory.get_agent(
             "commercial",
@@ -97,7 +91,7 @@ class ConversationService:
                     f"'{decision['type']}' no soportado."
                 )
 
-        self._execute_actions(
+        self.action_executor.ejecutar(
             decision["acciones"],
             prospecto
         )
@@ -117,53 +111,12 @@ class ConversationService:
             respuesta_ia
         )
 
+        sesion.estado = (
+            EstadoConversacion.ESPERANDO_ASESOR
+            if decision["type"] == DecisionType.ESCALAR_A_HUMANO
+            else EstadoConversacion.ESPERANDO_CLIENTE
+        )
+
+        self.db.commit()
+
         return respuesta
-
-    def _execute_actions(
-        self,
-        acciones,
-        prospecto
-    ):
-
-        for accion in acciones:
-
-            match accion["type"]:
-
-                case "actualizar_estado":
-
-                    self._actualizar_estado(
-                        prospecto,
-                        accion
-                    )
-
-                case "escalar_a_humano":
-
-                    self.evento_service.registrar_escalamiento(
-                        prospecto=prospecto,
-                        motivo=accion["motivo"]
-                    )
-
-                case _:
-
-                    pass
-
-    def _actualizar_estado(
-        self,
-        prospecto,
-        accion
-    ):
-
-        try:
-
-            self.prospecto_service.cambiar_estado(
-                prospecto_id=prospecto.id,
-                estado=EstadoProspecto(accion["estado"]),
-                observacion=accion.get("observacion")
-            )
-
-        except ValueError as e:
-
-            logger.warning(
-                f"No se pudo aplicar la transición de "
-                f"estado del prospecto {prospecto.id}: {e}"
-            )

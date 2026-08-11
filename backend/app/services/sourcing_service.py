@@ -15,6 +15,7 @@ from app.schemas.sourcing import (
     SourcingResultado,
     SourcingBuscarResponse,
 )
+from app.utils.telefono import normalizar_telefono
 
 logger = logging.getLogger(__name__)
 
@@ -76,6 +77,8 @@ class SourcingService:
 
         descartados_sin_telefono = 0
 
+        descartados_telefono_invalido = 0
+
         for place in places:
 
             resultado, tipo_resultado = self._procesar_place(
@@ -97,6 +100,9 @@ class SourcingService:
             elif tipo_resultado == "descartado_sin_telefono":
                 descartados_sin_telefono += 1
 
+            elif tipo_resultado == "descartado_telefono_invalido":
+                descartados_telefono_invalido += 1
+
         return SourcingBuscarResponse(
 
             query=query,
@@ -110,6 +116,8 @@ class SourcingService:
             duplicados=duplicados,
 
             descartados_sin_telefono=descartados_sin_telefono,
+
+            descartados_telefono_invalido=descartados_telefono_invalido,
 
             resultados=resultados
         )
@@ -131,11 +139,11 @@ class SourcingService:
             "formattedAddress"
         )
 
-        telefono = place.get(
+        telefono_google = place.get(
             "internationalPhoneNumber"
         )
 
-        if not telefono:
+        if not telefono_google:
 
             return (
 
@@ -154,6 +162,40 @@ class SourcingService:
                 ),
 
                 "descartado_sin_telefono"
+
+            )
+
+        try:
+
+            telefono = normalizar_telefono(
+                telefono_google
+            )
+
+        except ValueError as e:
+
+            logger.warning(
+                f"Teléfono de Google no válido para "
+                f"'{nombre_empresa}' (place_id={google_place_id}): "
+                f"{e}"
+            )
+
+            return (
+
+                SourcingResultado(
+
+                    google_place_id=google_place_id,
+
+                    nombre_empresa=nombre_empresa,
+
+                    telefono=telefono_google,
+
+                    direccion=direccion,
+
+                    estado_resultado="descartado_telefono_invalido"
+
+                ),
+
+                "descartado_telefono_invalido"
 
             )
 

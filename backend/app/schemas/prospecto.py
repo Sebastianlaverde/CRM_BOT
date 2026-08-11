@@ -1,13 +1,14 @@
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict, EmailStr
+from pydantic import BaseModel, ConfigDict, EmailStr, field_validator
 
 from app.enums import (
     EstadoProspecto,
     OrigenProspecto,
     TipoNegocio,
 )
+from app.utils.telefono import normalizar_telefono
 
 
 class ProspectoBase(BaseModel):
@@ -21,6 +22,11 @@ class ProspectoBase(BaseModel):
     origen: OrigenProspecto = OrigenProspecto.MANUAL
     google_place_id: Optional[str] = None
     observaciones: Optional[str] = None
+
+    @field_validator("telefono")
+    @classmethod
+    def _normalizar_telefono(cls, valor: str) -> str:
+        return normalizar_telefono(valor)
 
 
 class ProspectoCreate(ProspectoBase):
@@ -39,6 +45,18 @@ class ProspectoUpdate(BaseModel):
     estado: Optional[EstadoProspecto] = None
     observaciones: Optional[str] = None
     activo: Optional[bool] = None
+
+    @field_validator("telefono")
+    @classmethod
+    def _normalizar_telefono(
+        cls,
+        valor: Optional[str]
+    ) -> Optional[str]:
+
+        if valor is None:
+            return None
+
+        return normalizar_telefono(valor)
 
 
 class ProspectoResponse(ProspectoBase):

@@ -81,6 +81,53 @@ class AgentPipeline:
 
         return decision
 
+    def generar_seguimiento(
+        self,
+        prospecto_id,
+        canal,
+        dias_sin_respuesta
+    ):
+
+        contexto = self._build_context(
+            prospecto_id,
+            canal
+        )
+
+        prompt = self._build_prompt(
+
+            contexto,
+
+            mensaje=None,
+
+            dias_sin_respuesta=dias_sin_respuesta
+
+        )
+
+        tools = (
+            self.tool_manager
+            .get_openai_tools()
+        )
+
+        respuesta = self._call_ai(
+
+            prompt=prompt,
+
+            contexto=contexto,
+
+            tools=tools
+
+        )
+
+        decision = self.decision_engine.decidir(
+
+            respuesta_ia=respuesta,
+
+            contexto=contexto
+
+        )
+
+        return decision
+
     def _build_context(
         self,
         prospecto_id,
@@ -95,7 +142,8 @@ class AgentPipeline:
     def _build_prompt(
         self,
         contexto,
-        mensaje
+        mensaje,
+        dias_sin_respuesta=None
     ):
 
         tools = (
@@ -126,7 +174,9 @@ class AgentPipeline:
 
             objetivo=objetivo,
 
-            tools=tools
+            tools=tools,
+
+            dias_sin_respuesta=dias_sin_respuesta
 
         )
 

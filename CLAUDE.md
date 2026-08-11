@@ -14,6 +14,11 @@ revísalo al inicio de cada sesión de trabajo.
   (siempre revisar el archivo generado antes de aplicar — autogenerate
   a veces detecta cambios no relacionados si el modelo Python y el
   historial de migraciones divergieron)
+- Tests unitarios: `docker compose exec api pytest` (o `pytest -v` /
+  `pytest tests/archivo.py` para uno específico). Si agregás una
+  dependencia nueva a `requirements.txt` (como `pytest`), un
+  `restart` no la instala — hace falta
+  `docker compose up -d --build api`.
 
 ## Arquitectura
 - Capas: `models/` → `repositories/` → `services/` → `schemas/` → `routers/`
