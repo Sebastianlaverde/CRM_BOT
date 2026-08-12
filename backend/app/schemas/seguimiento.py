@@ -16,6 +16,10 @@ class SeguimientoResultado(BaseModel):
 
     mensaje: str
 
+    canal_envio: str
+
+    plantilla: str | None = None
+
     estado_resultado: str
 
 

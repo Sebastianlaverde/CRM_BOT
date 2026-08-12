@@ -34,6 +34,18 @@ UMBRAL_DIAS_POR_ESTADO = {
 
 }
 
+# Ventana de servicio al cliente de WhatsApp Business API: fuera de
+# esto, un mensaje saliente iniciado por nosotros debe ser una
+# plantilla pre-aprobada por Meta, no texto libre generado por la IA.
+VENTANA_SERVICIO_HORAS = 24
+
+# Pendiente de aprobación en Meta Business Manager. Única plantilla
+# de seguimiento por ahora (sirve para INTERESADO y COTIZADO sin
+# mencionar montos) — si más adelante se aprueban plantillas
+# distintas por estado, esto pasa a ser un dict por EstadoProspecto
+# como UMBRAL_DIAS_POR_ESTADO.
+NOMBRE_PLANTILLA_SEGUIMIENTO = "seguimiento_cotizacion_pizza"
+
 
 class SeguimientoService:
 
@@ -133,13 +145,39 @@ class SeguimientoService:
 
         prospecto = sesion.prospecto
 
-        decision = self.agent.generar_seguimiento(
-            prospecto.id,
-            sesion.canal,
-            dias_sin_respuesta
+        horas_desde_cliente = (
+            self._horas_desde_ultimo_mensaje_cliente(
+                sesion.id
+            )
         )
 
-        contenido = decision["contenido"]
+        if horas_desde_cliente < VENTANA_SERVICIO_HORAS:
+
+            canal_envio = "texto_libre"
+
+            plantilla = None
+
+            decision = self.agent.generar_seguimiento(
+                prospecto.id,
+                sesion.canal,
+                dias_sin_respuesta
+            )
+
+            contenido = decision["contenido"]
+
+            acciones = decision["acciones"]
+
+        else:
+
+            canal_envio = "plantilla"
+
+            plantilla = NOMBRE_PLANTILLA_SEGUIMIENTO
+
+            contenido = self._renderizar_plantilla_seguimiento(
+                prospecto
+            )
+
+            acciones = []
 
         if dry_run:
 
@@ -153,12 +191,16 @@ class SeguimientoService:
 
                 mensaje=contenido,
 
+                canal_envio=canal_envio,
+
+                plantilla=plantilla,
+
                 estado_resultado="pendiente_enviar"
 
             )
 
         self.action_executor.ejecutar(
-            decision["acciones"],
+            acciones,
             prospecto
         )
 
@@ -229,6 +271,64 @@ class SeguimientoService:
 
             mensaje=contenido,
 
+            canal_envio=canal_envio,
+
+            plantilla=plantilla,
+
             estado_resultado="enviado"
+
+        )
+
+    def _horas_desde_ultimo_mensaje_cliente(
+        self,
+        sesion_id
+    ) -> float:
+
+        ultimo_mensaje_cliente = (
+            self.mensaje_repository
+            .obtener_ultimo_mensaje_cliente(
+                sesion_id
+            )
+        )
+
+        if ultimo_mensaje_cliente is None:
+
+            # No debería pasar (ESPERANDO_CLIENTE implica que hubo
+            # al menos un mensaje del cliente), pero si pasa, es más
+            # seguro asumir la ventana cerrada (usar plantilla) que
+            # arriesgar texto libre fuera de ventana.
+            return float("inf")
+
+        ahora = datetime.now(timezone.utc)
+
+        return (
+
+            ahora - ultimo_mensaje_cliente.created_at
+
+        ).total_seconds() / 3600
+
+    def _renderizar_plantilla_seguimiento(
+        self,
+        prospecto
+    ) -> str:
+
+        nombre = (
+            prospecto.nombre_contacto
+            or prospecto.nombre_empresa
+        )
+
+        return (
+
+            f"Hola {nombre}, ¿cómo vas? 👋\n\n"
+
+            f"Seguimos atentos para ayudarte con tus cajas para "
+            f"pizza. Si todavía te interesa, escríbenos y retomamos "
+            f"la cotización de una vez.\n\n"
+
+            f"Si ya no lo necesitas, no hay problema, solo "
+            f"respóndenos para cerrar el tema.\n\n"
+
+            f"Si prefieres no recibir más mensajes nuestros, "
+            f"responde BAJA."
 
         )

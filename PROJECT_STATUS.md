@@ -73,14 +73,52 @@ NUEVO → CONTACTADO → RESPONDIO → INTERESADO → COTIZADO → NEGOCIACION �
   `prospecto.seguimiento`. Activó `SesionConversacion.estado`/
   `ultima_actividad` (existían en el modelo pero nunca se escribían).
   **No envía nada por WhatsApp de verdad todavía** — no existe esa
-  integración; solo genera y registra. Ojo con esto para cuando se
-  construya: fuera de la ventana de 24h de WhatsApp Business API un
-  mensaje saliente iniciado por nosotros debe ser plantilla aprobada,
-  no texto libre — el texto que genera hoy el agente probablemente no
-  sirva tal cual. Probado end-to-end con datos reales (dry_run sin
-  escribir nada, envío real con mensaje/evento/reset de
-  `ultima_actividad` verificados en DB, no re-dispara inmediatamente,
-  prospecto en `CLIENTE` queda excluido aunque su sesión esté vieja).
+  integración; solo genera y registra. Probado end-to-end con datos
+  reales (dry_run sin escribir nada, envío real con mensaje/evento/
+  reset de `ultima_actividad` verificados en DB, no re-dispara
+  inmediatamente, prospecto en `CLIENTE` queda excluido aunque su
+  sesión esté vieja).
+- ✅ Ventana de servicio de 24h de WhatsApp Business API respetada en
+  el seguimiento: `SeguimientoService._horas_desde_ultimo_mensaje_cliente()`
+  mide desde el último `Mensaje` con `autor=CLIENTE` (no desde
+  `sesion.ultima_actividad`, que refleja cuándo respondió el AGENTE,
+  no el cliente — hoy casi coinciden por el procesamiento síncrono,
+  pero conceptualmente son cosas distintas). `<24h` → sigue generando
+  texto libre vía `AgentPipeline` como antes. `>=24h` → NO llama a
+  OpenAI, usa `_renderizar_plantilla_seguimiento()` con la plantilla
+  `seguimiento_cotizacion_pizza` (pendiente de aprobación en Meta,
+  ver más abajo), con fallback `nombre_contacto` → `nombre_empresa`.
+  `SeguimientoResultado` ahora expone `canal_envio`
+  (`"texto_libre"`/`"plantilla"`) y `plantilla` para que se vea en el
+  `dry_run` cuál se usaría. **Hallazgo importante**: como
+  `UMBRAL_DIAS_POR_ESTADO` son todos ≥ 2 días, en la práctica el
+  seguimiento automático SIEMPRE cae en la rama de plantilla — el
+  camino de texto libre casi no se usa con los umbrales actuales
+  (quedaría para un futuro recordatorio same-day por debajo de 24h,
+  no construido). Probado end-to-end: mensaje del cliente hace 13h →
+  texto libre (con IA, contextual); mismo caso a 30h → plantilla, sin
+  llamar a OpenAI (confirmado por tiempo de respuesta: 0.14s vs.
+  decenas de segundos de las llamadas reales a gpt-5); fallback de
+  nombre verificado con un prospecto sin `nombre_contacto` (de
+  sourcing).
+- Plantillas de WhatsApp redactadas y **pendientes de subir a Meta
+  Business Manager para aprobación** (24-48h de review):
+  - `primer_contacto_cajas_pizza` (categoría Marketing, con opt-out)
+    — para contacto en frío a pizzerías nuevas del sourcing de Google
+    Places. Variable `{{1}} = nombre_empresa`.
+  - `seguimiento_cotizacion_pizza` (categoría Marketing — no Utility,
+    porque empuja a continuar la compra, con opt-out) — ya integrada
+    en código (`SeguimientoService._renderizar_plantilla_seguimiento()`)
+    pero el texto que hay que subir a Meta debe ser idéntico al que
+    genera esa función. Variable `{{1}} = nombre_contacto` o
+    `nombre_empresa` si no hay contacto.
+  - Ninguna está conectada a un envío real todavía (no hay
+    credenciales de Meta ni número verificado) — el nombre
+    `seguimiento_cotizacion_pizza` en el código es solo la referencia
+    que se usará cuando se conecte el envío real; si Meta la rechaza
+    o pide cambios de texto, hay que actualizar
+    `_renderizar_plantilla_seguimiento()` para que coincida exacto
+    con lo aprobado.
 - Workflow de n8n para mensajes entrantes de WhatsApp:
   `n8n/workflows/whatsapp-inbound.json` (exportado, para importar
   manual vía "Import from File"). 6 nodos: `Webhook` → `Extraer datos
