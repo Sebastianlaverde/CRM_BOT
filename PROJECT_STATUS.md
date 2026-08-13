@@ -53,15 +53,20 @@ NUEVO → CONTACTADO → RESPONDIO → INTERESADO → COTIZADO → NEGOCIACION �
   `POST /api/v1/sourcing/buscar` (`tipo_negocio` + `zona` + `max_resultados`
   ≤20 + `dry_run`). Usa Text Search con field mask mínimo (`id`,
   `displayName`, `formattedAddress`, `internationalPhoneNumber`).
-  Descarta negocios sin teléfono, deduplica por `google_place_id`
-  (campo nuevo en `Prospecto`, migración `551353f12a2b`) y también
-  recupera limpio si el teléfono ya existía en otro prospecto. Crea
-  con `origen=GOOGLE_MAPS`, `estado=NUEVO`. Probado end-to-end con
-  datos falsos de Google (dry_run, importación real, dedup, colisión
-  de teléfono, `TipoNegocio.OTRO` rechazado) — **falta la prueba con
-  la API real de Google** (`GOOGLE_PLACES_API_KEY` vacía en `.env`
-  todavía) para validar formato de respuesta real y ver el costo en
-  Cloud Console antes de escalar volumen.
+  Descarta negocios sin teléfono, descarta números fijos colombianos
+  (`descartado_telefono_fijo` — ver normalización de teléfono abajo,
+  WhatsApp requiere celular), deduplica por `google_place_id` (campo
+  nuevo en `Prospecto`, migración `551353f12a2b`) y también recupera
+  limpio si el teléfono ya existía en otro prospecto. Crea con
+  `origen=GOOGLE_MAPS`, `estado=NUEVO`. ✅ **Probado con la API real de
+  Google** (billing activo, `GOOGLE_PLACES_API_KEY` configurada):
+  búsqueda real "pizzerías en Palmira, Valle del Cauca" trajo 5
+  resultados reales, de los cuales 2 eran números fijos (uno de ellos
+  ni siquiera era una pizzería — "Comidas Rápidas Odie" — la búsqueda
+  de texto libre de Google trae negocios relacionados aunque no sean
+  pizzerías exactas; conocido, sin resolver — ver `includedType` como
+  posible mejora futura si molesta). Nada se guardó (`dry_run`); el
+  usuario confirmó el costo en su propio Google Cloud Billing.
 - Seguimiento comercial automático: endpoint `POST /api/v1/seguimiento/ejecutar`
   (`dry_run`, disparado por cron en n8n — no hay scheduler embebido en
   la API). Detecta prospectos "esperando cliente" hace más de X días
@@ -157,11 +162,22 @@ NUEVO → CONTACTADO → RESPONDIO → INTERESADO → COTIZADO → NEGOCIACION �
   (`573009999001`) encuentra correctamente al prospecto ya
   normalizado en la base (antes de este fix, este caso fallaba con
   "No existe un prospecto con ese teléfono"). Validado además con
-  test unitario (`backend/tests/test_telefono.py`, 9 casos, corridos
+  test unitario (`backend/tests/test_telefono.py`, corridos
   con `pytest` — primera infraestructura de tests del proyecto,
   ver Comandos en CLAUDE.md) contra el formato real documentado por
   Google Places (`"+57 318 1329452"` → `"573181329452"`), el formato
   de alta manual sin indicativo, e idempotencia.
+- ✅ Restricción de números fijos: `normalizar_telefono()` ahora
+  rechaza números fijos colombianos (10 dígitos locales que no
+  empiezan en `3`, ej. fijos de Cali/Valle `602...`, Bogotá `601...`)
+  con `TelefonoFijoError` (subclase de `ValueError`, así que todo el
+  manejo de errores existente — validadores de Pydantic,
+  `SourcingService` — lo captura sin cambios). `SourcingService` lo
+  reporta en su propia categoría `descartado_telefono_fijo`. Probado
+  con datos reales de Google (ver sourcing arriba): detectó y
+  descartó 2 fijos reales de la búsqueda en Palmira. Test unitario en
+  `test_telefono.py` con el caso real de Google (`+57 602 2864126`) y
+  un fijo de Bogotá.
 
 
 ## Bugs corregidos en esta sesión (por si algo similar reaparece)
@@ -175,6 +191,12 @@ huérfano en la máquina de transiciones, y transiciones automáticas que
 se saltaban toda la lógica de negocio). Ver historial de conversación
 completo para detalle de cada uno.
 - reglas de estado ajustadas tras encontrar falso positivo real
+- `ProspectoResponse` heredaba el `field_validator` de teléfono desde
+  `ProspectoBase` — reventaba `GET /prospectos` con 500 apenas la
+  tabla tenía una fila con teléfono no normalizable (los 3 registros
+  de prueba basura), porque el validador de escritura se re-ejecutaba
+  también al leer/serializar. Movido el validador a `ProspectoCreate`
+  únicamente — nunca validar de nuevo en el camino de lectura.
 
 ## Qué falta (roadmap)
 1. ~~Tool calling real con OpenAI~~ ✅
@@ -192,10 +214,11 @@ completo para detalle de cada uno.
    para mensajes fuera de la ventana de 24h).
 6. Escalar a múltiples agentes (`AgentFactory` ya soporta el patrón,
    solo falta agregar más tipos además de `"commercial"`)
-7. ~~Sourcing de prospectos vía Google Places API~~ ✅ construido,
-   falta prueba con la API real de Google (ver abajo) antes de
-   escalar volumen. El primer contacto saliente (WhatsApp con
-   plantillas de marketing) es la fase siguiente, aún sin construir.
+7. ~~Sourcing de prospectos vía Google Places API~~ ✅ construido y
+   probado con la API real (ver arriba). El primer contacto saliente
+   (WhatsApp con plantillas de marketing) es la fase siguiente — las
+   plantillas ya están redactadas (ver arriba) pero sin subir a Meta
+   ni conectado el envío real.
 
 ## Decisiones de diseño tomadas
 - n8n es capa delgada de entrada/salida y notificaciones; toda la lógica
@@ -226,14 +249,11 @@ completo para detalle de cada uno.
   con `prospectos.estado`.
 - Decidir si el payload del webhook `prospecto.cotizado` debe incluir el
   detalle completo de la cotización (hoy no lo trae).
-- Falta correr la primera prueba real de sourcing contra Google Places
-  API (New) — hoy `GOOGLE_PLACES_API_KEY` está vacía en `.env`. Cuando
-  se configure, correr `POST /api/v1/sourcing/buscar` con
-  `max_resultados` bajo (1-5) y `dry_run=true` primero, revisar los
-  candidatos, y solo después repetir con `dry_run=false`. Revisar el
-  costo en Google Cloud Console → Billing → Reports filtrado por SKU
-  (el campo `internationalPhoneNumber` cae en un tier más caro que
-  nombre/dirección solos).
+- ✅ Prueba real de sourcing contra Google Places API (New) hecha
+  (ver arriba). Pendiente: correr `dry_run=false` para importar de
+  verdad los candidatos que el usuario confirme que se ven bien, y
+  que el usuario confirme el costo exacto en su Billing (dijo que lo
+  iba a mirar él mismo).
 - ✅ Formato canónico de teléfono resuelto: E.164 sin `+` con
   indicativo `57` (ver `app/utils/telefono.py` arriba). Riesgo
   residual conocido y aceptado por ahora: la normalización asume

@@ -15,7 +15,10 @@ from app.schemas.sourcing import (
     SourcingResultado,
     SourcingBuscarResponse,
 )
-from app.utils.telefono import normalizar_telefono
+from app.utils.telefono import (
+    normalizar_telefono,
+    TelefonoFijoError,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -79,6 +82,8 @@ class SourcingService:
 
         descartados_telefono_invalido = 0
 
+        descartados_telefono_fijo = 0
+
         for place in places:
 
             resultado, tipo_resultado = self._procesar_place(
@@ -103,6 +108,9 @@ class SourcingService:
             elif tipo_resultado == "descartado_telefono_invalido":
                 descartados_telefono_invalido += 1
 
+            elif tipo_resultado == "descartado_telefono_fijo":
+                descartados_telefono_fijo += 1
+
         return SourcingBuscarResponse(
 
             query=query,
@@ -118,6 +126,8 @@ class SourcingService:
             descartados_sin_telefono=descartados_sin_telefono,
 
             descartados_telefono_invalido=descartados_telefono_invalido,
+
+            descartados_telefono_fijo=descartados_telefono_fijo,
 
             resultados=resultados
         )
@@ -169,6 +179,34 @@ class SourcingService:
 
             telefono = normalizar_telefono(
                 telefono_google
+            )
+
+        except TelefonoFijoError as e:
+
+            logger.info(
+                f"Teléfono fijo descartado para "
+                f"'{nombre_empresa}' (place_id={google_place_id}): "
+                f"{e}"
+            )
+
+            return (
+
+                SourcingResultado(
+
+                    google_place_id=google_place_id,
+
+                    nombre_empresa=nombre_empresa,
+
+                    telefono=telefono_google,
+
+                    direccion=direccion,
+
+                    estado_resultado="descartado_telefono_fijo"
+
+                ),
+
+                "descartado_telefono_fijo"
+
             )
 
         except ValueError as e:

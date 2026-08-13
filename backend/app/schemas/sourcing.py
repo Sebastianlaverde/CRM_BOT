@@ -48,4 +48,6 @@ class SourcingBuscarResponse(BaseModel):
 
     descartados_telefono_invalido: int
 
+    descartados_telefono_fijo: int
+
     resultados: list[SourcingResultado]

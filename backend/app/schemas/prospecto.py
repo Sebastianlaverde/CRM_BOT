@@ -23,14 +23,13 @@ class ProspectoBase(BaseModel):
     google_place_id: Optional[str] = None
     observaciones: Optional[str] = None
 
+
+class ProspectoCreate(ProspectoBase):
+
     @field_validator("telefono")
     @classmethod
     def _normalizar_telefono(cls, valor: str) -> str:
         return normalizar_telefono(valor)
-
-
-class ProspectoCreate(ProspectoBase):
-    pass
 
 
 class ProspectoUpdate(BaseModel):
