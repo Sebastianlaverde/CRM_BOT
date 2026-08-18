@@ -6,6 +6,7 @@ from app.agents.ai_service import AIService
 from app.agents.tool_manager import ToolManager
 from app.agents.decision_engine import DecisionEngine
 from app.enums import AutorMensaje
+from app.services.uso_tokens_service import UsoTokensService
 
 ROL_OPENAI_POR_AUTOR = {
 
@@ -39,6 +40,8 @@ class AgentPipeline:
 
         self.decision_engine = DecisionEngine()
 
+        self.uso_tokens_service = UsoTokensService(db)
+
     def execute(
         self,
         prospecto_id,
@@ -67,7 +70,9 @@ class AgentPipeline:
 
             contexto=contexto,
 
-            tools=tools
+            tools=tools,
+
+            origen="conversacion"
 
         )
 
@@ -114,7 +119,9 @@ class AgentPipeline:
 
             contexto=contexto,
 
-            tools=tools
+            tools=tools,
+
+            origen="seguimiento"
 
         )
 
@@ -184,14 +191,15 @@ class AgentPipeline:
         self,
         prompt,
         contexto,
-        tools
+        tools,
+        origen
     ):
 
         historial = self._build_historial(
             contexto["mensajes"]
         )
 
-        return self.ai_service.responder(
+        respuesta_ia = self.ai_service.responder(
 
             prompt=prompt,
 
@@ -202,6 +210,24 @@ class AgentPipeline:
             tool_executor=self.tool_manager.execute
 
         )
+
+        self.uso_tokens_service.registrar(
+
+            prospecto_id=contexto["prospecto"].id,
+
+            origen=origen,
+
+            modelo=respuesta_ia.modelo,
+
+            tokens_entrada=respuesta_ia.tokens_entrada,
+
+            tokens_salida=respuesta_ia.tokens_salida,
+
+            tokens_total=respuesta_ia.tokens_total
+
+        )
+
+        return respuesta_ia.texto
 
     def _build_historial(
         self,

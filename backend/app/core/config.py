@@ -30,6 +30,32 @@ class Settings(BaseSettings):
     # Google Places (sourcing de prospectos)
     GOOGLE_PLACES_API_KEY: str = ""
 
+    # Tipo de negocio objetivo por defecto para el sourcing automático
+    # (disparado por n8n semanalmente, sin parámetros explícitos).
+    SOURCING_TIPO_NEGOCIO_DEFAULT: str = "PIZZERIA"
+
+    # Control de capacidad del embudo de prospección: tope de
+    # prospectos "en proceso" (CONTACTADO/RESPONDIO/INTERESADO/
+    # COTIZADO/NEGOCIACION) antes de que el orquestador de primer
+    # contacto deje de enviar mensajes nuevos.
+    TOPE_EMBUDO_ACTIVO: int = 50
+
+    # Negocio (personalizar por cliente — arquitectura de instancia
+    # separada por cliente, no multi-tenant. Un cliente nuevo solo
+    # necesita llenar estas 4 variables, sin tocar Python).
+    BUSINESS_NAME: str = "LeadFlow"
+    BUSINESS_TYPE: str = "empresa comercial"
+    BUSINESS_DESCRIPTION: str = "Vendemos productos y servicios a nuestros clientes."
+    BUSINESS_TONE: str = "profesional y amable"
+
+    # LeadFlow Control (plataforma de administración de cuentas —
+    # proyecto separado). EMPRESA_API_KEY es la misma key que Control
+    # generó al dar de alta esta empresa; se usa en ambas direcciones:
+    # este CRM la manda al llamar a Control, y Control la manda al
+    # llamar al endpoint /interno/estado-cuenta de este CRM.
+    CONTROL_BASE_URL: str = ""
+    EMPRESA_API_KEY: str = ""
+
     # WhatsApp
     WHATSAPP_TOKEN: str | None = None
     WHATSAPP_PHONE_ID: str | None = None

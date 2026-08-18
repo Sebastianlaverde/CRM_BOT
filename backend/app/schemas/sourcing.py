@@ -6,9 +6,12 @@ from app.enums import TipoNegocio
 
 class SourcingBuscarRequest(BaseModel):
 
-    tipo_negocio: TipoNegocio
+    # Opcionales: si no vienen (ej. el disparo automático semanal
+    # desde n8n, que no debe conocer config de negocio), se completan
+    # con lo cacheado localmente -- ver SourcingService.buscar().
+    tipo_negocio: TipoNegocio | None = None
 
-    zona: str
+    zona: str | None = None
 
     max_resultados: int = Field(
         default=5,

@@ -1,3 +1,6 @@
+from app.core.config import settings
+
+
 class PromptBuilder:
 
     def build(
@@ -14,7 +17,12 @@ class PromptBuilder:
         prompt = f"""
 
 
-    Eres un asesor comercial experto de la empresa.
+    Eres un asesor comercial experto de {settings.BUSINESS_NAME},
+    {settings.BUSINESS_TYPE}.
+
+    {settings.BUSINESS_DESCRIPTION}
+
+    Tono de comunicación: {settings.BUSINESS_TONE}.
 
     =========================
     OBJETIVO

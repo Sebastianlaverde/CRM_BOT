@@ -1,4 +1,5 @@
 from app.agents.providers.base_provider import BaseProvider
+from app.agents.providers.respuesta_ia import RespuestaIA
 
 
 class MockProvider(BaseProvider):
@@ -9,7 +10,7 @@ class MockProvider(BaseProvider):
         historial: list[dict],
         tools: list,
         tool_executor
-    ) -> str:
+    ) -> RespuestaIA:
 
         print("===== PROMPT =====")
         print(prompt)
@@ -22,7 +23,13 @@ class MockProvider(BaseProvider):
                 f"{turno['role']}: {turno['content']}"
             )
 
-        return (
-            "Hola, gracias por escribirnos. "
-            "Un asesor revisará tu solicitud."
+        return RespuestaIA(
+
+            texto=(
+                "Hola, gracias por escribirnos. "
+                "Un asesor revisará tu solicitud."
+            ),
+
+            modelo="mock"
+
         )

@@ -1,10 +1,17 @@
 # LeadFlow CRM — Estado del proyecto
 
 ## Qué es
-CRM para una empresa fabricante de cajas para pizza. Gestiona prospectos
-y automatiza el proceso comercial con un agente de IA (no un chatbot
-simple: conoce el contexto del prospecto, sigue reglas de negocio y usa
-herramientas conectadas al CRM).
+CRM con agente de IA que gestiona prospectos y automatiza el proceso
+comercial (no un chatbot simple: conoce el contexto del prospecto,
+sigue reglas de negocio y usa herramientas conectadas al CRM).
+
+**El código es genérico por diseño** (arquitectura de instancia
+separada por cliente/silo, no multi-tenant — ver CLAUDE.md). El
+negocio de cada instancia se configura por `.env`, nunca hardcodeado
+en Python: `BUSINESS_NAME`, `BUSINESS_TYPE`, `BUSINESS_DESCRIPTION`,
+`BUSINESS_TONE`. **Esta instancia en particular** hoy está configurada
+para una empresa fabricante de cajas para pizza (ver `.env`) — eso es
+un dato del `.env` de este deploy, no algo hardcodeado en el código.
 
 **Stack:** FastAPI + PostgreSQL + SQLAlchemy + Alembic + OpenAI (Responses
 API con tool calling) + n8n + WhatsApp (aún no integrado).
@@ -107,19 +114,21 @@ NUEVO → CONTACTADO → RESPONDIO → INTERESADO → COTIZADO → NEGOCIACION �
   nombre verificado con un prospecto sin `nombre_contacto` (de
   sourcing).
 - Plantillas de WhatsApp redactadas y **pendientes de subir a Meta
-  Business Manager para aprobación** (24-48h de review):
-  - `primer_contacto_cajas_pizza` (categoría Marketing, con opt-out)
-    — para contacto en frío a pizzerías nuevas del sourcing de Google
+  Business Manager para aprobación** (24-48h de review) — nombres
+  genericados tras el refactor de `BUSINESS_*` (ver abajo), texto aún
+  pendiente de re-redactar para reflejar el negocio vía esas variables:
+  - `primer_contacto_negocio` (categoría Marketing, con opt-out) —
+    para contacto en frío a negocios nuevos del sourcing de Google
     Places. Variable `{{1}} = nombre_empresa`.
-  - `seguimiento_cotizacion_pizza` (categoría Marketing — no Utility,
+  - `seguimiento_cotizacion` (categoría Marketing — no Utility,
     porque empuja a continuar la compra, con opt-out) — ya integrada
-    en código (`SeguimientoService._renderizar_plantilla_seguimiento()`)
-    pero el texto que hay que subir a Meta debe ser idéntico al que
-    genera esa función. Variable `{{1}} = nombre_contacto` o
-    `nombre_empresa` si no hay contacto.
+    en código (`SeguimientoService._renderizar_plantilla_seguimiento()`,
+    usa `settings.BUSINESS_NAME`) pero el texto que hay que subir a
+    Meta debe ser idéntico al que genera esa función. Variable
+    `{{1}} = nombre_contacto` o `nombre_empresa` si no hay contacto.
   - Ninguna está conectada a un envío real todavía (no hay
     credenciales de Meta ni número verificado) — el nombre
-    `seguimiento_cotizacion_pizza` en el código es solo la referencia
+    `seguimiento_cotizacion` en el código es solo la referencia
     que se usará cuando se conecte el envío real; si Meta la rechaza
     o pide cambios de texto, hay que actualizar
     `_renderizar_plantilla_seguimiento()` para que coincida exacto
@@ -178,6 +187,195 @@ NUEVO → CONTACTADO → RESPONDIO → INTERESADO → COTIZADO → NEGOCIACION �
   descartó 2 fijos reales de la búsqueda en Palmira. Test unitario en
   `test_telefono.py` con el caso real de Google (`+57 602 2864126`) y
   un fijo de Bogotá.
+- ✅ **Negocio genérico vía `.env`** (arquitectura de instancia
+  separada por cliente/silo — ver CLAUDE.md): el contenido específico
+  de "cajas de pizza" se sacó del código del módulo `agents/` y se
+  movió a 4 variables nuevas en `Settings`/`.env`/`.env.example`
+  (valores por defecto genéricos si no se configuran):
+  `BUSINESS_NAME`, `BUSINESS_TYPE`, `BUSINESS_DESCRIPTION`,
+  `BUSINESS_TONE`. `PromptBuilder` arma la identidad/tono del agente
+  con estas 4 variables en vez de texto fijo. `RuleEngine` tenía dos
+  ejemplos ilustrativos con "cajas"/"pizzería" (no reglas de negocio
+  en sí) — genericados. `SeguimientoService` también tenía "cajas
+  para pizza" hardcodeado en el texto de la plantilla de seguimiento
+  (fuera de `agents/`, pero mismo problema) — ahora usa
+  `settings.BUSINESS_NAME`; el nombre de esa plantilla también se
+  genericó (`seguimiento_cotizacion_pizza` → `seguimiento_cotizacion`).
+  **Fuera de alcance a propósito**: `SourcingService.TERMINOS_BUSQUEDA`/
+  `TipoNegocio` (a qué tipo de negocios buscamos como *clientes*, ej.
+  pizzerías) — es la categoría de prospecto objetivo, no la identidad
+  de nuestro negocio; para un cliente de otro rubro esto es un cambio
+  de enum/código, no una variable de `.env`. Probado end-to-end con
+  OpenAI real usando los valores de cajas de pizza ya configurados en
+  `.env`: memoria de conversación, tool calling, transiciones
+  automáticas y guiadas (`NUEVO→CONTACTADO→RESPONDIO→INTERESADO`)
+  siguen funcionando idéntico a antes del refactor — el agente sigue
+  hablando de cajas de pizza porque eso es lo que dice el `.env` de
+  esta instancia, no porque esté hardcodeado.
+- ✅ Integración con **LeadFlow Control** (repo nuevo y separado, en
+  `../leadflow-control` — plataforma de administración de cuentas,
+  no forma parte de este repo). Este CRM ahora respeta el estado
+  activo/inactivo de la cuenta:
+  - `EstadoCuenta` (tabla nueva, fila única id=1) es el "interruptor"
+    local. `POST /interno/estado-cuenta` (protegido por
+    `EMPRESA_API_KEY`, comparación en tiempo constante vía
+    `secrets.compare_digest`) lo actualiza cuando Control avisa un
+    cambio.
+  - `verificar_cuenta_activa` (dependency de FastAPI) aplicada a nivel
+    de router en `conversacion.py`, `sourcing.py`, `seguimiento.py` —
+    devuelve 403 de entrada si `activo=False`, antes de gastar un
+    solo token de OpenAI.
+  - Chequeo de respaldo cada 3 min (`APScheduler`, arrancado en el
+    `lifespan` de `main.py`) contra `GET {CONTROL_BASE_URL}/empresas/mi-config`
+    — mismo endpoint que también sirve `zona_busqueda_google_places`
+    para sourcing (consulta perezosa, sin urgencia). A propósito NO
+    usa n8n como reloj para esto (ver razón en `PROJECT_STATUS.md` de
+    Control) — es el único mecanismo periódico de este proyecto que
+    corre embebido en vez de disparado por n8n.
+  - Instalación nueva sin `EstadoCuenta` todavía (nunca contactó a
+    Control) → `activo=True` por defecto, no bloquea.
+  - **Probado con integración real cruzando los dos repos** (Control
+    corriendo en :8100, este CRM en :8000, comunicándose vía
+    `host.docker.internal`): desactivar desde el panel de Control
+    bloqueó este CRM automáticamente (403, sin llamar nada manual);
+    reactivar directo en la base de Control (simulando que el push
+    nunca llegó) dejó a este CRM desactivado hasta que el chequeo de
+    respaldo lo corrigió — probado primero invocando la función
+    manualmente, y **después, aparte, dejando correr el scheduler
+    real sin tocar nada: se disparó solo a los 90 segundos** y
+    bloqueó/corrigió la cuenta sin intervención — ver detalle completo
+    en `PROJECT_STATUS.md` de `leadflow-control`.
+  - Nuevas variables de entorno: `EMPRESA_API_KEY`, `CONTROL_BASE_URL`.
+- ✅ **Tracking de uso de tokens de OpenAI**, reportado a Control
+  (reemplaza el intento anterior de que Control consultara la API de
+  gasto de OpenAI directo — se abandonó por requerir una Admin API Key
+  de la organización del cliente). Tabla nueva `UsoTokens`
+  (`prospecto_id` nullable, `origen` "conversacion"/"seguimiento",
+  `modelo`, tokens entrada/salida/total). `OpenAIProvider.generate()`
+  ahora devuelve `RespuestaIA` (texto + uso acumulado de TODAS las
+  rondas de una llamada, incluyendo las de tool calling — antes solo
+  devolvía el texto) en vez de un `str` plano; `MockProvider` devuelve
+  uso en cero. `AgentPipeline._call_ai()` persiste el registro después
+  de cada turno (tiene `db` disponible) y extrae el texto para seguir
+  el flujo normal hacia `DecisionEngine` sin tocarlo. Un tercer job en
+  el mismo `APScheduler` (una vez al día, sin la urgencia del chequeo
+  de `activo`) suma el uso del día y lo reporta a
+  `POST {CONTROL_BASE_URL}/empresas/reportar-uso`. Probado con
+  conversación real (no simulada): 2 turnos reales con gpt-5
+  capturaron 3918 y 3958 tokens respectivamente, el reporte a Control
+  sumó correctamente 7876, y un segundo reporte el mismo día
+  actualizó la misma fila en vez de duplicar (upsert por período del
+  lado de Control).
+- ✅ **Control de capacidad del embudo de prospección** (orquestador de
+  "primer contacto" — no existía antes de esta sesión, aunque se había
+  diseñado en una sesión previa: se detectó por grep que nunca se
+  llegó a construir, y se construyó desde cero junto con las 3 reglas
+  de negocio de una vez, en vez de como parche posterior):
+  - `PrimerContactoService.ejecutar(dry_run)` (endpoint
+    `POST /api/v1/primer-contacto/ejecutar`, mismo patrón que
+    `seguimiento.py` — disparado por cron en n8n, sin scheduler
+    embebido, porque es lógica de negocio no de disponibilidad) recorre
+    prospectos `NUEVO` (más antiguos primero) y les manda
+    `enviar_plantilla()` de `WhatsAppService` (nuevo — modo **simulado**
+    hoy, sin `WHATSAPP_TOKEN`: loguea y devuelve éxito, igual que
+    `MockProvider` con OpenAI; si hay token pero el envío real aún no
+    está implementado, devuelve fallo controlado sin tumbar el resto
+    del batch).
+  - Corta en orden: fuera de horario laboral (`es_horario_laboral()`,
+    nuevo, lun-vie 9-17 `America/Bogota`, con test unitario propio) →
+    `pausar_prospeccion` activo → tope de embudo activo alcanzado →
+    tope diario alcanzado (`MAXIMO_CONTACTOS_DIA = 10`, sin variable de
+    entorno a propósito, no lo pidieron configurable). Cada corte
+    devuelve `motivo_corte` explicando por qué, útil en `dry_run`.
+  - **Tope de embudo activo** (`settings.TOPE_EMBUDO_ACTIVO`, default
+    50, configurable por `.env`): cuenta prospectos en
+    CONTACTADO/RESPONDIO/INTERESADO/COTIZADO/NEGOCIACION (reusa
+    `ProspectoRepository.contar_por_estados()`, ya existía para las
+    estadísticas) y si el total ya alcanzó el tope, no manda NINGÚN
+    primer contacto nuevo ese día, sin importar cuántos `NUEVO` haya en
+    cola.
+  - Reintentos: si el envío falla, se registra `Evento`
+    `PRIMER_CONTACTO_FALLIDO` (nuevo, junto con `PRIMER_CONTACTO_ENVIADO`
+    — cupieron en el varchar(28) existente, sin migración) y el
+    prospecto se reintenta en la próxima corrida, hasta
+    `MAX_INTENTOS_PRIMER_CONTACTO = 3`, luego se deja de intentar
+    (queda `NUEVO` para siempre, sin más reintentos automáticos).
+  - **Pausa manual de prospección** (`pausar_prospeccion`): switch
+    nuevo y **distinto** de `activo` — `activo` solo lo cambia el admin
+    de Control (ej. por falta de pago) y bloquea TODO (403 en
+    conversación/sourcing/seguimiento); `pausar_prospeccion` es más
+    suave y **el propio cliente lo puede prender/apagar desde su panel**
+    (confirmado con el usuario antes de construir): las conversaciones
+    en curso siguen funcionando 100% normal, solo se detienen los
+    primeros contactos nuevos. Vive en `Empresa.pausar_prospeccion`
+    (Control) y se cachea localmente en `EstadoCuenta.pausar_prospeccion`
+    (este repo) vía el mismo `GET /empresas/mi-config` y el mismo
+    chequeo periódico de 3 min que ya existía para `activo` — sin
+    mecanismo de comunicación nuevo. Expuesto en el panel cliente de
+    Control por un endpoint angosto y dedicado
+    (`POST /panel/cliente/prospeccion/pausar` / `/reanudar`), no por el
+    `EmpresaUpdate` genérico de admin — es la primera acción de
+    escritura que tiene el panel cliente (antes 100% solo lectura). El
+    admin también puede pausar/reanudar desde su panel (mismo patrón
+    visual que activar/desactivar). Ninguno de los dos toggles empuja
+    al CRM al toque (a diferencia de `activo`) — se apoya en el poll de
+    3 min, que ya corría por otra razón.
+  - **Sourcing semanal**: `SourcingService.buscar()` ahora resuelve
+    `tipo_negocio`/`zona` con fallback cuando no vienen en el request
+    (`SourcingBuscarRequest` los volvió opcionales) —
+    `settings.SOURCING_TIPO_NEGOCIO_DEFAULT` y
+    `EstadoCuentaService.obtener_zona_busqueda()` (mismo caché de
+    `zona_busqueda_google_places` que ya llegaba por el poll de 3 min,
+    reusado tal cual) — pensado para que el disparo automático semanal
+    desde un Cron Trigger de n8n no necesite conocer configuración de
+    negocio. El cambio de diario a semanal es solo cuestión del cron de
+    n8n (por ahorro de presupuesto), no de código.
+  - ✅ **Probado end-to-end con datos reales** (no solo que importe):
+    - Tope de embudo: bajando `TOPE_EMBUDO_ACTIVO` por debajo del
+      conteo real de "en proceso" (6 en la base de prueba), la ejecución
+      cortó con `"Tope de embudo activo alcanzado (6/5)"` y 0 evaluados.
+    - Tope diario: con 10 eventos `PRIMER_CONTACTO_ENVIADO` reales
+      insertados para hoy, cortó con `"Tope diario ya alcanzado
+      (10/10)"`.
+    - `dry_run=true` listó candidatos reales sin mutar nada (estado
+      verificado sin cambios); `dry_run=false` sí mandó (simulado),
+      cambió el estado a `CONTACTADO` vía `ProspectoService.cambiar_estado()`
+      (historial + evento + webhook, no asignación directa) y registró
+      el evento — confirmado en base de datos. **Nota**: esta corrida
+      real de `dry_run=false` procesó también los `NUEVO` reales que ya
+      existían en esta base de datos de desarrollo ("Pizzeria Fake
+      Uno", "Test Normalizacion", "Test Fix Validador" — datos de
+      prueba de sesiones anteriores, no un cliente real), que ahora
+      están en `CONTACTADO`. Es el comportamiento correcto del
+      orquestador, no un bug, pero queda anotado por si se esperaba
+      verlos en `NUEVO`.
+    - `pausar_prospeccion`: activado desde Control, confirmado que
+      `GET /empresas/mi-config` lo refleja, confirmado que el poll de
+      este CRM lo sincroniza a `EstadoCuenta` local, y confirmado que
+      el orquestador corta específicamente con `"Prospección pausada
+      por el cliente."` (no con el corte de horario laboral, que se
+      evaluó aparte para aislar la causa) — mientras tanto,
+      `GET /prospectos` y `/docs` siguieron respondiendo 200 normal,
+      confirmando que solo bloquea el orquestador, nada más. Revertido
+      a `false` al terminar la prueba.
+    - Sourcing sin parámetros: `POST /sourcing/buscar` con
+      `{"max_resultados": 1, "dry_run": true}` (sin `tipo_negocio` ni
+      `zona`) armó la query `"pizzerías en Palmira, Valle del Cauca"`
+      solo con los defaults, y trajo 1 resultado real de Google Places
+      (`dry_run`, nada se guardó).
+  - Nuevas variables de entorno: `TOPE_EMBUDO_ACTIVO`,
+    `SOURCING_TIPO_NEGOCIO_DEFAULT`.
+- ✅ **Estadísticas comerciales reportadas a Control** (cuarto job en
+  el mismo `APScheduler`, una vez al día): cuántos prospectos
+  respondieron alguna vez (`ProspectoRepository.contar_por_estados()`,
+  estado `RESPONDIO` o más avanzado) y cuántos llegaron a `CLIENTE`.
+  Snapshot del momento, no acumulado. Definiciones exactas acordadas
+  con el usuario antes de construir (ver `PROJECT_STATUS.md` de
+  `leadflow-control` para el detalle, incluyendo el margen de error
+  conocido: `DESCARTADO` directo desde `NUEVO`/`CONTACTADO` sin haber
+  respondido nunca se cuenta igual como "contactado", por simplicidad).
+  Probado con la distribución real de prospectos de esta base — los
+  números coincidieron exacto con el cálculo manual.
 
 
 ## Bugs corregidos en esta sesión (por si algo similar reaparece)
@@ -219,6 +417,17 @@ completo para detalle de cada uno.
    (WhatsApp con plantillas de marketing) es la fase siguiente — las
    plantillas ya están redactadas (ver arriba) pero sin subir a Meta
    ni conectado el envío real.
+8. ~~Integración con LeadFlow Control (estado activo/inactivo)~~ ✅
+   construida y probada con integración real entre los dos repos (ver
+   arriba). El panel visual de Control ya existe (admin + cliente), ver
+   `PROJECT_STATUS.md` de `leadflow-control`.
+9. ~~Control de capacidad del embudo de prospección (orquestador de
+   primer contacto, tope de embudo, pausa manual)~~ ✅ construido y
+   probado end-to-end (ver arriba). Falta: registrar el Cron Trigger
+   real en n8n (hoy se dispara manual, igual que seguimiento) y el
+   envío real de WhatsApp (mismo pendiente que el resto de plantillas,
+   ver arriba) — el orquestador ya está listo para conectarse apenas
+   haya credenciales de Meta.
 
 ## Decisiones de diseño tomadas
 - n8n es capa delgada de entrada/salida y notificaciones; toda la lógica
@@ -228,6 +437,12 @@ completo para detalle de cada uno.
   entender el contenido de la conversación las decide el modelo vía
   tool calling, guiado por reglas explícitas en `RuleEngine`.
 - Modelo de OpenAI en uso: `gpt-5` vía Responses API (`client.responses.create`).
+- Arquitectura de **instancia separada por cliente (silo)**, no
+  multi-tenant compartido — al menos por ahora. Cada cliente corre su
+  propio deploy completo (DB, API, n8n) con su propio `.env`. El
+  negocio de la instancia se configura vía `BUSINESS_NAME`,
+  `BUSINESS_TYPE`, `BUSINESS_DESCRIPTION`, `BUSINESS_TONE` — nunca
+  hardcodeado en Python (ver detalle arriba y en CLAUDE.md).
 
 ## Pendiente de verificar/decidir
 - ✅ Confirmada con OpenAI real (no Mock) la máquina de estados

@@ -4,6 +4,7 @@ from openai import OpenAI
 
 from app.core.config import settings
 from app.agents.providers.base_provider import BaseProvider
+from app.agents.providers.respuesta_ia import RespuestaIA
 
 class OpenAIProvider(BaseProvider):
 
@@ -19,7 +20,7 @@ class OpenAIProvider(BaseProvider):
         historial: list[dict],
         tools: list,
         tool_executor
-    ) -> str:
+    ) -> RespuestaIA:
 
         messages = self._build_messages(
             prompt,
@@ -29,6 +30,10 @@ class OpenAIProvider(BaseProvider):
         response = self._first_response(
             messages,
             tools
+        )
+
+        tokens_entrada, tokens_salida, tokens_total = (
+            self._extraer_uso(response)
         )
 
         while self._has_tool_calls(response):
@@ -47,7 +52,49 @@ class OpenAIProvider(BaseProvider):
                 tools
             )
 
-        return self._extract_text(response)
+            entrada, salida, total = self._extraer_uso(
+                response
+            )
+
+            tokens_entrada += entrada
+
+            tokens_salida += salida
+
+            tokens_total += total
+
+        return RespuestaIA(
+
+            texto=self._extract_text(response),
+
+            modelo=settings.OPENAI_MODEL,
+
+            tokens_entrada=tokens_entrada,
+
+            tokens_salida=tokens_salida,
+
+            tokens_total=tokens_total
+
+        )
+
+    def _extraer_uso(
+        self,
+        response
+    ):
+
+        uso = getattr(
+            response,
+            "usage",
+            None
+        )
+
+        if uso is None:
+            return 0, 0, 0
+
+        return (
+            getattr(uso, "input_tokens", 0) or 0,
+            getattr(uso, "output_tokens", 0) or 0,
+            getattr(uso, "total_tokens", 0) or 0
+        )
 
     def _build_messages(
         self,

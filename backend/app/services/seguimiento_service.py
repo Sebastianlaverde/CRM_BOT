@@ -3,6 +3,7 @@ from datetime import timezone
 
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.enums import (
     AutorMensaje,
     TipoMensaje,
@@ -44,7 +45,7 @@ VENTANA_SERVICIO_HORAS = 24
 # mencionar montos) — si más adelante se aprueban plantillas
 # distintas por estado, esto pasa a ser un dict por EstadoProspecto
 # como UMBRAL_DIAS_POR_ESTADO.
-NOMBRE_PLANTILLA_SEGUIMIENTO = "seguimiento_cotizacion_pizza"
+NOMBRE_PLANTILLA_SEGUIMIENTO = "seguimiento_cotizacion"
 
 
 class SeguimientoService:
@@ -321,9 +322,9 @@ class SeguimientoService:
 
             f"Hola {nombre}, ¿cómo vas? 👋\n\n"
 
-            f"Seguimos atentos para ayudarte con tus cajas para "
-            f"pizza. Si todavía te interesa, escríbenos y retomamos "
-            f"la cotización de una vez.\n\n"
+            f"Seguimos atentos para ayudarte desde "
+            f"{settings.BUSINESS_NAME}. Si todavía te interesa, "
+            f"escríbenos y retomamos la cotización de una vez.\n\n"
 
             f"Si ya no lo necesitas, no hay problema, solo "
             f"respóndenos para cerrar el tema.\n\n"

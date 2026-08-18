@@ -3,11 +3,13 @@ import logging
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
+from app.core.config import settings
 from app.enums import (
     TipoNegocio,
     OrigenProspecto,
 )
 from app.integrations.google_places_service import GooglePlacesService
+from app.services.estado_cuenta_service import EstadoCuentaService
 from app.services.prospecto_service import ProspectoService
 from app.schemas.prospecto import ProspectoCreate
 from app.schemas.sourcing import (
@@ -47,10 +49,16 @@ class SourcingService:
 
         self.prospecto_service = ProspectoService(db)
 
+        self.estado_cuenta_service = EstadoCuentaService(db)
+
     def buscar(
         self,
         data: SourcingBuscarRequest
     ) -> SourcingBuscarResponse:
+
+        data = self._resolver_defaults(
+            data
+        )
 
         termino = TERMINOS_BUSQUEDA.get(
             data.tipo_negocio
@@ -130,6 +138,40 @@ class SourcingService:
             descartados_telefono_fijo=descartados_telefono_fijo,
 
             resultados=resultados
+        )
+
+    def _resolver_defaults(
+        self,
+        data: SourcingBuscarRequest
+    ) -> SourcingBuscarRequest:
+
+        tipo_negocio = data.tipo_negocio
+
+        if tipo_negocio is None:
+
+            tipo_negocio = TipoNegocio(
+                settings.SOURCING_TIPO_NEGOCIO_DEFAULT
+            )
+
+        zona = data.zona
+
+        if zona is None:
+
+            zona = self.estado_cuenta_service.obtener_zona_busqueda()
+
+        if zona is None:
+
+            raise ValueError(
+                "No se especificó 'zona' y todavía no hay "
+                "zona_busqueda_google_places cacheada localmente "
+                "(se sincroniza cada 3 min desde LeadFlow Control)."
+            )
+
+        return data.model_copy(
+            update={
+                "tipo_negocio": tipo_negocio,
+                "zona": zona
+            }
         )
 
     def _procesar_place(

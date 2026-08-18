@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from sqlalchemy.orm import Session
 
 from app.enums import (
@@ -102,6 +104,70 @@ class EventoService:
             ),
 
             origen=OrigenEvento.SISTEMA
+        )
+
+    def registrar_primer_contacto_enviado(
+        self,
+        prospecto
+    ):
+
+        return self.registrar_evento(
+
+            tipo=TipoEvento.PRIMER_CONTACTO_ENVIADO,
+
+            entidad=EntidadEvento.PROSPECTO,
+
+            entidad_id=prospecto.id,
+
+            descripcion=(
+                f"Se envió el primer contacto por WhatsApp a "
+                f"'{prospecto.nombre_empresa}'."
+            ),
+
+            origen=OrigenEvento.SISTEMA
+        )
+
+    def registrar_primer_contacto_fallido(
+        self,
+        prospecto,
+        motivo: str
+    ):
+
+        return self.registrar_evento(
+
+            tipo=TipoEvento.PRIMER_CONTACTO_FALLIDO,
+
+            entidad=EntidadEvento.PROSPECTO,
+
+            entidad_id=prospecto.id,
+
+            descripcion=(
+                f"Falló el envío del primer contacto a "
+                f"'{prospecto.nombre_empresa}'. Motivo: {motivo}"
+            ),
+
+            origen=OrigenEvento.SISTEMA
+        )
+
+    def contar_primer_contacto_enviado_desde(
+        self,
+        desde: datetime
+    ) -> int:
+
+        return self.repository.contar_por_tipo_desde(
+            TipoEvento.PRIMER_CONTACTO_ENVIADO,
+            desde
+        )
+
+    def contar_primer_contacto_fallido_de_prospecto(
+        self,
+        prospecto_id: int
+    ) -> int:
+
+        return self.repository.contar_por_tipo_y_entidad(
+            TipoEvento.PRIMER_CONTACTO_FALLIDO,
+            EntidadEvento.PROSPECTO,
+            prospecto_id
         )
 
     def obtener_todos(self):

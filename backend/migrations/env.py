@@ -13,6 +13,8 @@ from app.models.historial_estado import HistorialEstado
 from app.models.producto import Producto
 from app.models.cotizacion import Cotizacion
 from app.models.detalle_cotizacion import DetalleCotizacion
+from app.models.estado_cuenta import EstadoCuenta
+from app.models.uso_tokens import UsoTokens
 
 config = context.config
 

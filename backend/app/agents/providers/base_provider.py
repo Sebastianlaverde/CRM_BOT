@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
 
+from app.agents.providers.respuesta_ia import RespuestaIA
+
 
 class BaseProvider(ABC):
 
@@ -10,5 +12,5 @@ class BaseProvider(ABC):
         historial: list[dict],
         tools: list,
         tool_executor
-    ) -> str:
+    ) -> RespuestaIA:
         pass

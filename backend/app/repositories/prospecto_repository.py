@@ -98,3 +98,39 @@ class ProspectoRepository:
             )
             .first()
         )
+
+    def contar_por_estados(
+        self,
+        estados: list[EstadoProspecto]
+    ) -> int:
+
+        return (
+            self.db.query(Prospecto)
+            .filter(
+                Prospecto.estado.in_(estados),
+                Prospecto.activo.is_(True)
+            )
+            .count()
+        )
+
+    def listar_por_estado_ordenado(
+        self,
+        estado: EstadoProspecto,
+        limite: int | None = None
+    ):
+
+        query = (
+            self.db.query(Prospecto)
+            .filter(
+                Prospecto.estado == estado,
+                Prospecto.activo.is_(True)
+            )
+            .order_by(
+                Prospecto.created_at.asc()
+            )
+        )
+
+        if limite is not None:
+            query = query.limit(limite)
+
+        return query.all()

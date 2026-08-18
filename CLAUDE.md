@@ -26,6 +26,55 @@ revísalo al inicio de cada sesión de trabajo.
   decision engine, context builder, rule engine, objective engine)
 - Flujo del agente: `WhatsApp → n8n → API → ConversationService →
   CommercialAgent → AgentPipeline → OpenAI → Tools → PostgreSQL`
+- **Instancia separada por cliente (silo), no multi-tenant**: este
+  código está pensado para correr una instancia completa (DB, API,
+  n8n) por cada cliente/negocio, no varios negocios compartiendo la
+  misma base de datos. El negocio de la instancia actual **NO está
+  hardcodeado** — vive en 4 variables de entorno (`BUSINESS_NAME`,
+  `BUSINESS_TYPE`, `BUSINESS_DESCRIPTION`, `BUSINESS_TONE`, ver
+  `.env.example`) que `PromptBuilder` inyecta en el prompt del agente.
+  Para adaptar el proyecto a un cliente nuevo de otro rubro: llenar
+  esas 4 variables en su propio `.env` — no hace falta tocar Python.
+  Ojo: `SeguimientoService._renderizar_plantilla_seguimiento()`
+  también usa `BUSINESS_NAME`, pero es el texto de una plantilla de
+  WhatsApp — si cambia, hay que volver a aprobarla en Meta para ese
+  cliente. `SourcingService.TERMINOS_BUSQUEDA`/`TipoNegocio` (a qué
+  tipo de negocios buscamos como *clientes*, ej. pizzerías) es un
+  eje aparte, no está en las 4 variables — sigue hardcodeado y hay
+  que ajustarlo en código si el rubro del cliente busca otro tipo de
+  prospecto.
+- **LeadFlow Control** (repo separado, en `../leadflow-control`) es la
+  plataforma donde se administran las cuentas de todos los clientes
+  (activo/inactivo, config, login humano) — este repo NUNCA guarda
+  contraseñas ni administra otras empresas, solo consulta/recibe su
+  propio estado vía `EMPRESA_API_KEY`. Ver `PROJECT_STATUS.md` para
+  el detalle de `EstadoCuenta`, `POST /interno/estado-cuenta`, y el
+  chequeo periódico de respaldo (`APScheduler`, cada 3 min — la única
+  pieza de este proyecto con un scheduler embebido en vez de n8n como
+  reloj, a propósito, porque es un mecanismo de disponibilidad, no de
+  negocio). Este CRM también le **reporta** a Control su propio uso
+  de tokens de OpenAI una vez al día (`UsoTokens` →
+  `POST /empresas/reportar-uso`, segundo job en el mismo scheduler) —
+  Control nunca consulta la API de OpenAI directo, ver por qué en su
+  `CLAUDE.md`. El mismo `GET /empresas/mi-config` (llamado por ese
+  chequeo de 3 min) también trae `zona_busqueda_google_places` y
+  `pausar_prospeccion`, cacheados en las mismas columnas de
+  `EstadoCuenta` — no son solo el interruptor activo/inactivo aunque
+  el nombre de la tabla lo sugiera.
+- **Orquestador de primer contacto** (`PrimerContactoService`,
+  `POST /api/v1/primer-contacto/ejecutar`): manda el mensaje inicial a
+  prospectos `NUEVO`, con 3 frenos en orden (horario laboral →
+  `pausar_prospeccion` → tope de embudo activo → tope diario) antes de
+  enviar nada. `pausar_prospeccion` es distinto de `activo`: lo puede
+  prender/apagar el propio cliente desde su panel de Control (no solo
+  el admin), y solo frena primeros contactos nuevos — conversaciones en
+  curso siguen andando igual. Si agregás un freno nuevo, seguí el mismo
+  patrón: cortar temprano y devolver `motivo_corte` explicando por qué,
+  no lanzar excepción.
+- **`RespuestaIA`** (`app/agents/providers/respuesta_ia.py`) es el
+  tipo de retorno de `BaseProvider.generate()` desde que se agregó el
+  tracking de tokens — texto + uso acumulado. Si agregás un provider
+  nuevo (Ollama/Gemini), tiene que devolver esto, no un `str` plano.
 
 ## Reglas de arquitectura (aprendidas de bugs reales de este proyecto)
 - **Tools del agente**: `BaseTool.parameters` siempre en formato plano

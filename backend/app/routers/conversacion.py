@@ -4,12 +4,14 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from app.database.database import get_db
+from app.routers.deps import verificar_cuenta_activa
 from app.schemas.conversation import MensajeEntrante
 from app.services.conversation_service import ConversationService
 
 router = APIRouter(
     prefix="/api/v1/conversaciones",
-    tags=["Conversaciones"]
+    tags=["Conversaciones"],
+    dependencies=[Depends(verificar_cuenta_activa)]
 )
 
 
